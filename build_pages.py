@@ -41,13 +41,30 @@ def _http_get_text(url: str, timeout: int = 30) -> str:
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         raw = resp.read()
-        # fund_monitor.py 返回 utf-8 JSON/HTML
         return raw.decode("utf-8", errors="replace")
 
 
-def _http_get_json(url: str, timeout: int = 60) -> Any:
-    text = _http_get_text(url, timeout=timeout)
-    return json.loads(text)
+def _http_get_json(url: str, timeout: int = 60, retries: int = 2) -> Any:
+    last_err: Exception | None = None
+    for attempt in range(1 + retries):
+        try:
+            text = _http_get_text(url, timeout=timeout)
+            return json.loads(text)
+        except Exception as e:
+            last_err = e
+            print(f"[WARN] attempt {attempt+1} failed for {url}: {e}")
+            if attempt < retries:
+                time.sleep(3)
+    raise last_err  # type: ignore[misc]
+
+
+def _http_get_json_or_fallback(url: str, fallback: Any, timeout: int = 180) -> Any:
+    """Try to fetch JSON; return fallback on any failure (timeout, network, etc.)."""
+    try:
+        return _http_get_json(url, timeout=timeout, retries=2)
+    except Exception as e:
+        print(f"[WARN] using fallback for {url}: {e}")
+        return fallback
 
 
 def _wait_until_ok(base_url: str, timeout_s: int = 20) -> None:
@@ -183,9 +200,9 @@ def main() -> None:
     _wait_until_ok(base_url)
 
     # 抓取“首屏必需”的数据
-    fund_codes = _http_get_json(base_url + "/api/fund_codes")
-    funds = _http_get_json(base_url + "/api/funds?mode=auto")
-    index = _http_get_json(base_url + "/api/index")
+    fund_codes = _http_get_json(base_url + "/api/fund_codes", timeout=30)
+    funds = _http_get_json_or_fallback(base_url + "/api/funds?mode=auto", fallback=[])
+    index = _http_get_json_or_fallback(base_url + "/api/index", fallback=[])
 
     # 获取原始 HTML
     html = _http_get_text(base_url + "/")
