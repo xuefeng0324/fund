@@ -5,6 +5,14 @@ __pycache__/
 # Local runtime/cache data
 intraday_store.json
 
+# Node modules (Playwright verification)
+node_modules/
+package.json
+package-lock.json
+
+# Verification artifacts
+artifacts/
+
 # OS/editor files
 .DS_Store
 Thumbs.db

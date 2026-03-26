@@ -77,6 +77,32 @@ python .\fund_monitor.py
 - `GET /api/kdj`：获取 KDJ 指标相关数据
 - `GET /api/log`：获取运行日志信息
 
+## GitHub Pages 在线版
+
+本项目已通过 GitHub Actions 自动部署到 GitHub Pages，无需本地启动即可查看基金数据快照。
+
+**在线地址：** https://xuefeng0324.github.io/fund/
+
+### 工作原理
+
+1. `build_pages.py` 临时启动本地 `fund_monitor.py` 服务
+2. 抓取首页 HTML + 关键 API 数据（fund_codes / funds / index）
+3. 将 `window.fetch` 拦截器注入 HTML，使静态页面自包含所有数据
+4. 生成 `docs/index.html`
+
+### 自动化流程
+
+- **触发条件：** push 到 `main` 分支 或 手动 `workflow_dispatch`
+- **CI 流水线：** `.github/workflows/pages-deploy.yml`
+  - Build：运行 `build_pages.py` 生成静态页面
+  - Deploy：通过 `actions/deploy-pages` 部署到 GitHub Pages
+  - Verify：Playwright 浏览器自动化断言（H1 / 表格行数 / 截图归档）
+- **验证产物：** 截图、HTML 快照、console 日志上传至 Actions Artifacts
+
+### 手动重新部署
+
+在 GitHub 仓库 → Actions → "Deploy GitHub Pages (fund)" → Run workflow。
+
 ## 常见问题
 
 - **端口占用**：如果 `8000` 被占用，请修改 `fund_monitor.py` 里的启动端口。
