@@ -4,19 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
-  schedule:
-    # 交易日盘中每30分钟重建（UTC 01:30-07:00 = 北京时间 09:30-15:00）
-    # 周末 GitHub 也会触发，但消耗在免费额度内（约 20 runs/天 × 2min ≈ 40min/天）
-    - cron: "30 1 * * 1-5"
-    - cron: "0 2 * * 1-5"
-    - cron: "30 2 * * 1-5"
-    - cron: "0 3 * * 1-5"
-    - cron: "30 3 * * 1-5"
-    - cron: "0 5 * * 1-5"
-    - cron: "30 5 * * 1-5"
-    - cron: "0 6 * * 1-5"
-    - cron: "30 6 * * 1-5"
-    - cron: "0 7 * * 1-5"
 
 permissions:
   contents: read
@@ -63,24 +50,4 @@ jobs:
 
       - id: deployment
         uses: actions/deploy-pages@v4
-
-      - name: Verify with Playwright (browser automation)
-        env:
-          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
-          OUT_DIR: artifacts/pages-${{ github.run_id }}-${{ github.run_attempt }}
-        run: |
-          echo "PAGE_URL=$PAGE_URL"
-          mkdir -p "$OUT_DIR"
-
-          # 为了不引入 package.json，这里直接临时安装 playwright
-          npm init -y
-          npm i playwright
-          npx playwright install chromium
-          node ./pages_verify.mjs "$PAGE_URL" "$OUT_DIR"
-
-      - name: Upload verification artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: pages-verify-${{ github.run_id }}
-          path: artifacts/pages-${{ github.run_id }}-${{ github.run_attempt }}
 

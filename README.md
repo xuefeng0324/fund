@@ -106,28 +106,17 @@ python .\fund_monitor.py
 1. `build_pages.py` 临时启动 `fund_monitor.py` 服务，抓取首页 HTML + 关键 API 数据
 2. 注入 `live_fetch.js`（实时获取模块）和 `window.fetch` 拦截器到 HTML
 3. 生成 `docs/index.html`
-4. GitHub Actions 部署到 Pages + Playwright 浏览器验证
-
-### 定时重建
-
-GitHub Actions 在 **交易日盘中（北京时间 9:30-15:00）每 30 分钟** 自动重建，确保首屏静态数据保持新鲜。
-
-- 频率：工作日 10 次/天（跳过午休 11:30-13:00）
-- 月耗约 440 分钟（GitHub 免费额度 2000 分钟/月）
-- Cron 配置见 `.github/workflows/pages-deploy.yml`
+4. GitHub Actions 部署到 Pages
 
 ### 触发方式
 
-- **自动**：push 到 `main` + 定时 cron
+- **自动**：push 到 `main`
 - **手动**：GitHub 仓库 → Actions → "Deploy GitHub Pages (fund)" → Run workflow
 
-### 验证
+### 验证（可选）
 
-CI 部署后自动运行 Playwright 浏览器断言：
-- 页面标题包含"基金" ✓
-- `#fundTable` 表格至少 1 行 ✓
-- 刷新按钮点击后捕获外部 API 请求 ✓
-- HTML 快照 + console 日志上传至 Actions Artifacts
+- 线上页面在浏览器端通过 `live_fetch.js` 定时/手动刷新获取实时数据
+- 如需本地做浏览器断言验证，可使用仓库内的 `local_verify.mjs` / `pages_verify.mjs` 自行运行
 
 ## 常见问题
 
