@@ -3,7 +3,7 @@ name: Deploy GitHub Pages (fund)
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: [ "lyl-dev-claude" ]
 
 permissions:
   contents: read
