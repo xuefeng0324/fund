@@ -11,6 +11,7 @@
 const GITHUB_API = 'https://api.github.com'
 const REPO_OWNER = 'xuefeng0324'
 const REPO_NAME = 'fund'
+const BRANCH = 'lyl-dev-claude'  // 指定分支
 
 // 从环境变量获取 GitHub Token（VITE_GITHUB_TOKEN）
 const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN || ''
@@ -28,7 +29,7 @@ const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN || ''
  * @throws {Error} 如果请求失败（如文件不存在、无权限等）
  */
 export async function getFileContent(path, token = GITHUB_TOKEN) {
-  const res = await fetch(`${GITHUB_API}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`, {
+  const res = await fetch(`${GITHUB_API}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?ref=${BRANCH}`, {
     headers: {
       'Authorization': token ? `token ${token}` : '',
       'Accept': 'application/vnd.github.v3+json'
@@ -60,6 +61,7 @@ export async function getFileContent(path, token = GITHUB_TOKEN) {
  * @throws {Error} 如果更新失败（如 SHA 不匹配、无权限等）
  */
 export async function updateFile(path, content, sha, token = GITHUB_TOKEN, message) {
+  console.log('Updating file:', path, 'branch:', BRANCH, 'token exists:', !!token)
   const res = await fetch(`${GITHUB_API}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`, {
     method: 'PUT',
     headers: {
@@ -69,14 +71,20 @@ export async function updateFile(path, content, sha, token = GITHUB_TOKEN, messa
     },
     body: JSON.stringify({
       message: message || `Update ${path}`,
-      // 将 JSON 对象编码为 Base64
       content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
-      sha: sha
+      sha: sha,
+      branch: BRANCH
     })
   })
+  console.log('Response status:', res.status, res.statusText)
   if (!res.ok) {
-    const err = await res.json()
-    throw new Error(err.message || `更新文件失败: ${res.status}`)
+    const text = await res.text()
+    console.error('Error response:', text)
+    throw new Error(`更新文件失败: ${res.status} - ${text}`)
+  }
+  // 处理 204 No Content
+  if (res.status === 204 || res.headers.get('content-length') === '0') {
+    return { success: true, status: res.status }
   }
   return res.json()
 }

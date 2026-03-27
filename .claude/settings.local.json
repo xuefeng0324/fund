@@ -14,7 +14,10 @@
       "Bash(curl -s \"http://localhost:5176/api/eastmoney-fundmob/FundMNewApi/FundMNFInfo?pageIndex=1&pageSize=200&plat=Android&appType=ttjj&product=EFund&Version=1&deviceid=Wap&Fcodes=001549,012922\")",
       "Bash(curl -v \"http://localhost:5176/api/eastmoney-fundmob/FundMNewApi/FundMNFInfo?pageIndex=1&pageSize=2&plat=Android&appType=ttjj&product=EFund&Version=1&deviceid=Wap&Fcodes=001549\")",
       "Bash(curl -s \"http://localhost:5176/api/eastmoney-fund/pingzhongdata/001549.js\")",
-      "Bash(taskkill /F /IM node.exe)"
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(ls:*)",
+      "Bash(git config:*)",
+      "Bash(gh auth:*)"
     ]
   }
 }

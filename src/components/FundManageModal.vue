@@ -62,6 +62,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
+import { getFileContent, updateFile } from '../api/github'
 
 const props = defineProps({
   keyValue: { type: String, required: true }
@@ -76,19 +77,51 @@ const saving = ref(false)
 const managedCodes = ref([])
 const fundNames = ref({})
 
+// GitHub API 相关
+const groupsSha = ref('')
+const codesSha = ref('')
+const allCodes = ref([])
+
 // 加载当前分组的基金列表
 async function loadGroupCodes() {
   try {
-    const res = await fetch('/fund/config/fund_groups.json?t=' + Date.now())
-    const groups = await res.json()
-    managedCodes.value = groups[props.keyValue] || []
+    // 从 GitHub API 加载获取 SHA
+    const groups = await getFileContent('public/config/fund_groups.json')
+    fundGroups.value = groups.content
+    groupsSha.value = groups.sha
+    managedCodes.value = groups.content[props.keyValue] || []
 
     // 加载基金名称
     await loadFundNames()
   } catch (e) {
     console.error('加载分组失败:', e)
+    // 回退到本地加载
+    const res = await fetch('/fund/config/fund_groups.json?t=' + Date.now())
+    const groups = await res.json()
+    managedCodes.value = groups[props.keyValue] || []
+    await loadFundNames()
   }
 }
+
+// 加载所有配置（包括 fund_codes）
+async function loadAllConfig() {
+  try {
+    const [codes, groups] = await Promise.all([
+      getFileContent('public/config/fund_codes.json'),
+      getFileContent('public/config/fund_groups.json')
+    ])
+    allCodes.value = codes.content
+    codesSha.value = codes.sha
+    fundGroups.value = groups.content
+    groupsSha.value = groups.sha
+    managedCodes.value = groups.content[props.keyValue] || []
+    await loadFundNames()
+  } catch (e) {
+    console.error('加载配置失败:', e)
+  }
+}
+
+const fundGroups = ref({})
 
 // 加载基金名称
 async function loadFundNames() {
@@ -173,14 +206,38 @@ async function save() {
   saving.value = true
 
   try {
-    const groupsRes = await fetch('/fund/config/fund_groups.json')
-    const groups = await groupsRes.json()
-    groups[props.keyValue] = managedCodes.value
+    // 更新分组
+    fundGroups.value[props.keyValue] = managedCodes.value
 
-    alert('基金列表已更新')
+    // 合并所有代码（去重）
+    const allGroupCodes = Object.values(fundGroups.value).flat()
+    const uniqueCodes = [...new Set([...allCodes.value, ...allGroupCodes])]
+
+    // 更新 fund_groups.json
+    await updateFile(
+      'public/config/fund_groups.json',
+      fundGroups.value,
+      groupsSha.value,
+      undefined,
+      `Update fund groups for ${props.keyValue}`
+    )
+
+    // 更新 fund_codes.json（如果有新代码）
+    if (uniqueCodes.length !== allCodes.value.length) {
+      await updateFile(
+        'public/config/fund_codes.json',
+        uniqueCodes,
+        codesSha.value,
+        undefined,
+        'Update fund codes'
+      )
+    }
+
+    alert('基金列表已保存到 GitHub')
     emit('saved')
     close()
   } catch (e) {
+    console.error('保存失败:', e)
     alert('保存失败: ' + e.message)
   } finally {
     saving.value = false
@@ -192,9 +249,9 @@ function close() {
   emit('close')
 }
 
-onMounted(loadGroupCodes)
+onMounted(loadAllConfig)
 
-watch(() => props.keyValue, loadGroupCodes)
+watch(() => props.keyValue, loadAllConfig)
 </script>
 
 <style scoped>

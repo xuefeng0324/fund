@@ -80,7 +80,14 @@ npm install
 
 ```bash
 npm run dev
-# 访问 http://localhost:5173/fund/
+# 访问 http://localhost:5173/fund/（如果端口被占用会自动递增）
+```
+
+**环境变量配置（可选）**
+
+如需测试 GitHub API 保存功能，创建 `.env.local`：
+```
+VITE_GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 ```
 
 开发服务器配置了 API 代理以解决 CORS 问题：
@@ -186,15 +193,31 @@ npm run preview
 
 ### GitHub Pages 自动部署
 
-推送到 `main` 分支会自动触发 GitHub Actions 部署：
+推送到 `lyl-dev-claude` 分支会自动触发 GitHub Actions 部署：
 
 ```bash
 git add .
 git commit -m "update"
-git push origin main
+git push origin lyl-dev-claude
 ```
 
 **在线地址：** https://xuefeng0324.github.io/fund/
+
+### GitHub Token 配置（用于基金管理保存功能）
+
+如需通过界面管理基金列表并保存到 GitHub：
+
+1. 生成 Personal Access Token：
+   - 访问 https://github.com/settings/tokens
+   - 点击 "Generate new token (classic)"
+   - 勾选 `repo` 权限
+   - 生成并复制 Token
+
+2. 配置到 GitHub Secrets：
+   - 仓库 Settings → Secrets → Actions
+   - 添加 `VITE_GITHUB_TOKEN` 密钥
+
+3. 重新部署后生效
 
 ### 手动部署
 
