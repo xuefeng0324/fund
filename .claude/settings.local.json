@@ -17,7 +17,9 @@
       "Bash(taskkill /F /IM node.exe)",
       "Bash(ls:*)",
       "Bash(git config:*)",
-      "Bash(gh auth:*)"
+      "Bash(gh auth:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
