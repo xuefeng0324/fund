@@ -242,11 +242,19 @@ export async function fetchFundsLive(fundCodes, mode = 'auto') {
  * 获取 pingzhongdata 数据
  */
 export async function fetchPingzhongdata(code) {
-  const url = '/api/eastmoney-fund/pingzhongdata/' + encodeURIComponent(code) + '.js?v=' + Date.now()
+  // 生产环境直接访问源站，开发环境使用代理
+  const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV
+  const baseUrl = isDev
+    ? '/api/eastmoney-fund'
+    : 'https://fund.eastmoney.com'
+  const url = baseUrl + '/pingzhongdata/' + encodeURIComponent(code) + '.js?v=' + Date.now()
 
   try {
     const response = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer': 'https://fund.eastmoney.com/'
+      }
     })
     const text = await response.text()
 
