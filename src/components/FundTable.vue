@@ -45,8 +45,8 @@
       >
         <div class="card-header">
           <div class="fund-info">
-            <span class="fund-code">{{ fund.FCODE }}</span>
             <span class="fund-name">{{ getFundName(fund) }}</span>
+            <span class="fund-code">{{ fund.FCODE }}</span>
           </div>
           <div class="fund-change" :class="getChangeClass(fund)">
             {{ formatChange(fund) }}
@@ -355,15 +355,15 @@ const sortedFunds = computed(() => {
   gap: 2px;
 }
 
-.fund-code {
-  font-size: 14px;
+.fund-name {
+  font-size: 15px;
   font-weight: 700;
   color: #1a1a1a;
 }
 
-.fund-name {
-  font-size: 13px;
-  color: #666;
+.fund-code {
+  font-size: 12px;
+  color: #888;
 }
 
 .fund-change {
