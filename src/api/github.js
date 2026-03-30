@@ -61,7 +61,6 @@ export async function getFileContent(path, token = GITHUB_TOKEN) {
  * @throws {Error} 如果更新失败（如 SHA 不匹配、无权限等）
  */
 export async function updateFile(path, content, sha, token = GITHUB_TOKEN, message) {
-  console.log('Updating file:', path, 'branch:', BRANCH, 'token exists:', !!token)
   const res = await fetch(`${GITHUB_API}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`, {
     method: 'PUT',
     headers: {
@@ -76,10 +75,8 @@ export async function updateFile(path, content, sha, token = GITHUB_TOKEN, messa
       branch: BRANCH
     })
   })
-  console.log('Response status:', res.status, res.statusText)
   if (!res.ok) {
     const text = await res.text()
-    console.error('Error response:', text)
     throw new Error(`更新文件失败: ${res.status} - ${text}`)
   }
   // 处理 204 No Content

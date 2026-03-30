@@ -42,7 +42,6 @@ export function useIndex() {
       indexData.value = await fetchIndexLive()
     } catch (e) {
       error.value = e.message
-      console.error('加载指数数据失败:', e)
     } finally {
       loading.value = false
     }

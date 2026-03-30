@@ -68,7 +68,6 @@ export function useConfig() {
       return { fundCodes: fundCodes.value, fundGroups: fundGroups.value }
     } catch (e) {
       error.value = e.message
-      console.error('加载配置失败:', e)
       return null
     } finally {
       loading.value = false
@@ -102,7 +101,6 @@ export function useConfig() {
         sha: configSha.value
       }
     } catch (e) {
-      console.error('从 GitHub 加载配置失败:', e)
       return null
     }
   }

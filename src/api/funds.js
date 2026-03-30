@@ -233,10 +233,8 @@ export function getLastTradingChange(code) {
     try { dateStr = new Date(last.x).toISOString().slice(0, 10) } catch (e) {}
     // 基金名称通过 fS_name 获取
     const name = (result && result.name) ? result.name : ''
-    console.log('getLastTradingChange:', code, 'name from result:', name, 'fS_name:', window.fS_name)
     return { change, date: dateStr, name: name || window.fS_name || '' }
   }).catch(e => {
-    console.log('getLastTradingChange error:', code, e)
     return { change: null, date: '--', name: '' }
   })
 }
@@ -276,7 +274,6 @@ export async function fetchFundsLive(fundCodes, mode = 'auto') {
   // 并行获取无估值基金的上一交易日涨跌
   const promises = noEstimateCodes.map(async item => {
     const lcd = await getLastTradingChange(item.code)
-    console.log('lcd result:', item.code, lcd) // 调试
     // 优先使用 lcd 返回的名称
     const shortName = lcd.name || basicInfo[item.code] || item.info.SHORTNAME || ''
     results.push({
@@ -324,7 +321,6 @@ export async function fetchPingzhongdata(code) {
       clearTimeout(timer)
       const trend = window.Data_netWorthTrend || []
       const name = window.fS_name || ''  // 先保存 name
-      console.log('fetchPingzhongdata:', code, 'name:', name)  // 调试
       resolve({ trend, name })
       cleanup()  // cleanup 放在 resolve 之后
     }
@@ -337,7 +333,6 @@ export async function fetchPingzhongdata(code) {
 
     document.head.appendChild(script)
   }).catch(e => {
-    console.error('fetchPingzhongdata error:', code, e)
     return []
   })
 }

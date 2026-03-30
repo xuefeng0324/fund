@@ -97,7 +97,6 @@ async function loadAllConfig() {
     groupsSha.value = groups.sha
     managedCodes.value = groups.content[props.keyValue] || []
   } catch (e) {
-    console.error('加载配置失败:', e)
     ElMessage.error('加载配置失败')
   }
 }
@@ -158,7 +157,6 @@ async function save() {
     emit('saved')
     close()
   } catch (e) {
-    console.error('保存失败:', e)
     ElMessage.error('保存失败: ' + e.message)
   } finally {
     saving.value = false

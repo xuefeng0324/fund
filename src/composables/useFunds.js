@@ -58,7 +58,6 @@ export function useFunds() {
       lastUpdate.value = new Date()
     } catch (e) {
       error.value = e.message
-      console.error('加载基金数据失败:', e)
     } finally {
       loading.value = false
     }

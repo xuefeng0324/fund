@@ -79,7 +79,6 @@ export function useAdvice() {
 
       return buildAdvice(metrics, gszzl, hasPosition)
     } catch (e) {
-      console.error('计算建议失败:', e)
       return { action: '观望', reasons: ['计算错误'], metrics: {} }
     }
   }
@@ -219,7 +218,6 @@ export function useAdvice() {
       const results = await Promise.all(promises)
       adviceData.value = Object.fromEntries(results)
     } catch (e) {
-      console.error('加载建议失败:', e)
     } finally {
       loading.value = false
     }

@@ -58,7 +58,6 @@ export function useKDJ() {
       cache.value[code] = result
       return result
     } catch (e) {
-      console.error('获取 KDJ 失败:', e)
       return {}
     } finally {
       loading.value = false

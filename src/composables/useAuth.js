@@ -65,7 +65,6 @@ export function useAuth() {
         return true
       }
     } catch (e) {
-      console.error('验证密钥失败:', e)
     }
 
     isValid.value = false
