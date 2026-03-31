@@ -1,6 +1,29 @@
 <template>
   <div class="fund-section">
-    <div class="sub-section-title">{{ title }}</div>
+    <div class="section-header">
+      <div class="sub-section-title">{{ title }}</div>
+      <!-- 移动端功能按钮（标题右侧） -->
+      <div v-if="isMobile" class="header-actions">
+        <!-- 排序开关 -->
+        <div class="sort-switch-wrap">
+          <span :class="['sort-label-text', { active: !sortAsc, disabled: props.loading }]">降序</span>
+          <el-switch
+            v-model="sortAsc"
+            class="sort-switch"
+            :disabled="props.loading"
+            @change="sortKey = 'GSZZL'"
+          />
+          <span :class="['sort-label-text', { active: sortAsc, disabled: props.loading }]">升序</span>
+        </div>
+        <!-- 展开/收起按钮 -->
+        <span
+          :class="['expand-btn', { disabled: props.loading }]"
+          @click="!props.loading && (allExpanded ? collapseAll() : expandAll())"
+        >
+          {{ allExpanded ? '收起全部' : '展开全部' }}
+        </span>
+      </div>
+    </div>
 
     <!-- PC端表格 -->
     <el-table
@@ -37,65 +60,103 @@
 
     <!-- 移动端卡片 -->
     <div v-else class="fund-cards">
-      <div class="mobile-sort">
-        <span class="sort-label">涨跌幅：</span>
-        <el-button-group>
-          <el-button
-            :type="sortKey === 'GSZZL' && !sortAsc ? 'primary' : ''"
-            size="small"
-            @click="sortKey = 'GSZZL'; sortAsc = false"
-          >
-            降序 ↑
-          </el-button>
-          <el-button
-            :type="sortKey === 'GSZZL' && sortAsc ? 'primary' : ''"
-            size="small"
-            @click="sortKey = 'GSZZL'; sortAsc = true"
-          >
-            升序 ↓
-          </el-button>
-        </el-button-group>
-      </div>
       <el-card
         v-for="fund in sortedFunds"
         :key="fund.FCODE"
         class="fund-card"
+        :class="{ expanded: isExpanded(fund) }"
         shadow="hover"
+        @click="toggleExpand(fund)"
       >
-        <div class="card-header">
-          <div class="fund-info">
+        <!-- 移动端收起状态：第一行基金名称+涨跌幅，第二行代码+时间 -->
+        <template v-if="isMobile && !isExpanded(fund)">
+          <div class="card-row">
             <span class="fund-name">{{ getFundName(fund) }}</span>
+            <span class="fund-change" :class="getChangeClass(fund)">
+              {{ formatChange(fund) }}
+            </span>
+          </div>
+          <div class="card-row">
             <span class="fund-code">{{ fund.FCODE }}</span>
+            <span class="time">{{ fund.GZTIME || fund.PDATE }}</span>
           </div>
-          <div class="fund-change" :class="getChangeClass(fund)">
-            {{ formatChange(fund) }}
+        </template>
+
+        <!-- 移动端展开状态：显示完整信息 -->
+        <template v-if="isMobile && isExpanded(fund)">
+          <div class="card-header">
+            <div class="fund-info">
+              <span class="fund-name">{{ getFundName(fund) }}</span>
+              <span class="fund-code">{{ fund.FCODE }}</span>
+            </div>
+            <div class="fund-change" :class="getChangeClass(fund)">
+              {{ formatChange(fund) }}
+            </div>
           </div>
-        </div>
-        <div class="card-body">
-          <div class="card-item">
-            <span class="label">估算净值</span>
-            <span class="value" :class="getChangeClass(fund)">{{ fund.GSZ ?? '-' }}</span>
+          <div class="card-body">
+            <div class="card-item">
+              <span class="label">估算净值</span>
+              <span class="value" :class="getChangeClass(fund)">{{ fund.GSZ ?? '-' }}</span>
+            </div>
+            <div class="card-item">
+              <span class="label">J(日)</span>
+              <span class="value" :class="getKDJClass(fund)">{{ getKDJValue(fund) }}</span>
+            </div>
+            <div class="card-item">
+              <span class="label">阶段</span>
+              <el-tag v-if="getPhase(fund)" :type="getPhaseType(fund)" size="small">
+                {{ getPhase(fund) }}
+              </el-tag>
+              <span v-else class="value">-</span>
+            </div>
+            <div class="card-item">
+              <span class="label">建议</span>
+              <span :class="getAdviceClass(fund)">{{ getAdvice(fund) }}</span>
+            </div>
           </div>
-          <div class="card-item">
-            <span class="label">J(日)</span>
-            <span class="value" :class="getKDJClass(fund)">{{ getKDJValue(fund) }}</span>
+          <div class="card-footer">
+            <span class="reason">{{ getReason(fund) }}</span>
+            <span class="time">{{ fund.GZTIME || fund.PDATE }}</span>
           </div>
-          <div class="card-item">
-            <span class="label">阶段</span>
-            <el-tag v-if="getPhase(fund)" :type="getPhaseType(fund)" size="small">
-              {{ getPhase(fund) }}
-            </el-tag>
-            <span v-else class="value">-</span>
+        </template>
+
+        <!-- PC端：始终显示完整信息 -->
+        <template v-if="!isMobile">
+          <div class="card-header">
+            <div class="fund-info">
+              <span class="fund-name">{{ getFundName(fund) }}</span>
+              <span class="fund-code">{{ fund.FCODE }}</span>
+            </div>
+            <div class="fund-change" :class="getChangeClass(fund)">
+              {{ formatChange(fund) }}
+            </div>
           </div>
-          <div class="card-item">
-            <span class="label">建议</span>
-            <span :class="getAdviceClass(fund)">{{ getAdvice(fund) }}</span>
+          <div class="card-body">
+            <div class="card-item">
+              <span class="label">估算净值</span>
+              <span class="value" :class="getChangeClass(fund)">{{ fund.GSZ ?? '-' }}</span>
+            </div>
+            <div class="card-item">
+              <span class="label">J(日)</span>
+              <span class="value" :class="getKDJClass(fund)">{{ getKDJValue(fund) }}</span>
+            </div>
+            <div class="card-item">
+              <span class="label">阶段</span>
+              <el-tag v-if="getPhase(fund)" :type="getPhaseType(fund)" size="small">
+                {{ getPhase(fund) }}
+              </el-tag>
+              <span v-else class="value">-</span>
+            </div>
+            <div class="card-item">
+              <span class="label">建议</span>
+              <span :class="getAdviceClass(fund)">{{ getAdvice(fund) }}</span>
+            </div>
           </div>
-        </div>
-        <div class="card-footer">
-          <span class="reason">{{ getReason(fund) }}</span>
-          <span class="time">{{ fund.GZTIME }}</span>
-        </div>
+          <div class="card-footer">
+            <span class="reason">{{ getReason(fund) }}</span>
+            <span class="time">{{ fund.GZTIME }}</span>
+          </div>
+        </template>
       </el-card>
     </div>
 
@@ -118,15 +179,45 @@ function getFundName(fund) {
   return fund.SHORTNAME || fund.FCODE
 }
 
-const sortKey = ref(null)
-const sortAsc = ref(true)
+const sortKey = ref('GSZZL')
+const sortAsc = ref(false)
 const windowWidth = ref(window.innerWidth)
+const expandedFunds = ref(new Set()) // 展开的基金
+const allExpanded = ref(false) // 是否全部展开
 
 function checkMobile() {
   return windowWidth.value < 768
 }
 
 const isMobile = computed(() => checkMobile())
+
+function toggleExpand(fund) {
+  if (expandedFunds.value.has(fund.FCODE)) {
+    expandedFunds.value.delete(fund.FCODE)
+  } else {
+    expandedFunds.value.add(fund.FCODE)
+  }
+  // 同步更新 allExpanded 状态
+  allExpanded.value = expandedFunds.value.size === props.funds.length
+}
+
+function isExpanded(fund) {
+  return expandedFunds.value.has(fund.FCODE)
+}
+
+// 一键展开所有
+function expandAll() {
+  props.funds.forEach(fund => {
+    expandedFunds.value.add(fund.FCODE)
+  })
+  allExpanded.value = true
+}
+
+// 一键收起所有
+function collapseAll() {
+  expandedFunds.value.clear()
+  allExpanded.value = false
+}
 
 function handleResize() {
   windowWidth.value = window.innerWidth
@@ -287,21 +378,30 @@ const sortedFunds = computed(() => {
 }
 
 .sub-section-title {
-  margin-bottom: 16px;
   font-weight: 700;
   font-size: 16px;
   color: #1a1a1a;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  vertical-align: middle;
 }
 
 .sub-section-title::before {
   content: '';
   width: 4px;
-  height: 20px;
+  height: 16px;
   background: #4f46e5;
   border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 24px;
+  margin-bottom: 16px;
 }
 
 .fund-table {
@@ -359,6 +459,57 @@ const sortedFunds = computed(() => {
   padding: 8px 4px;
 }
 
+.mobile-sort :deep(.el-button) {
+  border-radius: 10px;
+}
+
+.sort-switch-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+}
+
+.header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 24px;
+}
+
+.expand-btn {
+  font-size: 12px;
+  color: #4f46e5;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.expand-btn.disabled {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.sort-label-text.disabled {
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.sort-label-text {
+  font-size: 13px;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.sort-label-text.active {
+  color: #4f46e5;
+  font-weight: 500;
+}
+
+.sort-switch {
+  --el-switch-on-color: #4f46e5;
+}
+
 .sort-label {
   font-size: 13px;
   color: #666;
@@ -372,6 +523,17 @@ const sortedFunds = computed(() => {
 
 .fund-card :deep(.el-card__body) {
   padding: 16px;
+}
+
+/* 移动端收起状态的两行样式 */
+.card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-row + .card-row {
+  margin-top: 6px;
 }
 
 .card-header {
@@ -473,7 +635,7 @@ const sortedFunds = computed(() => {
 
   .sub-section-title {
     font-size: 14px;
-    margin-bottom: 12px;
+    margin-bottom: 24px;
   }
 }
 </style>

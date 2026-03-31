@@ -164,11 +164,6 @@ watch(keyValue, async (newKey, oldKey) => {
   // 如果 keyValue 为空，由 showAll 状态控制是否显示全部
 })
 
-// 监听显示模式变化
-watch(showAll, () => {
-  loadData()
-})
-
 // 初始化
 onMounted(async () => {
   await loadConfig()
