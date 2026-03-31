@@ -12,7 +12,7 @@
         :valid-key="validKey"
         :last-update="lastUpdate"
         :loading="loading"
-        @refresh="loadData"
+        @refresh="handleRefresh"
         @manage="showManageModal = true"
         @search="searchKeyword = $event"
       />
@@ -42,7 +42,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import Header from './components/Header.vue'
 import IndexStrip from './components/IndexStrip.vue'
 import Toolbar from './components/Toolbar.vue'
@@ -64,6 +64,19 @@ const showManageModal = ref(false)
 const validKey = ref('')
 const lastUpdate = ref(null)
 const searchKeyword = ref('')
+// 自动刷新定时器
+let refreshTimer = null
+const REFRESH_INTERVAL = 2 * 60 * 1000 // 2分钟
+
+// 重置定时器（手动刷新后调用，避免短时间内连续触发）
+function resetTimer() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+  }
+  refreshTimer = setInterval(() => {
+    loadData()
+  }, REFRESH_INTERVAL)
+}
 
 // 组合式函数
 const { fundCodes, fundGroups, loadConfig } = useConfig()
@@ -110,6 +123,12 @@ async function loadData() {
   } finally {
     loading.value = false
   }
+}
+
+// 手动刷新处理（重置定时器，避免短时间内连续触发）
+function handleRefresh() {
+  loadData()
+  resetTimer()
 }
 
 function getEffectiveCodes() {
@@ -170,6 +189,19 @@ onMounted(async () => {
   }
 
   loadData()
+
+  // 启动定时自动刷新
+  refreshTimer = setInterval(() => {
+    loadData()
+  }, REFRESH_INTERVAL)
+})
+
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
 })
 </script>
 
