@@ -192,6 +192,7 @@ export function fetchSingleFundgz(code) {
 
 /**
  * 自动获取基金实时估值（批量 + 单只补齐）
+ * 当外部 API 全部失败时，自动降级到本地 mock 数据
  */
 export function fetchRealtimeAuto(codes, mode = 'auto') {
   return fetchRealtimeBatch(codes).then(batchMap => {
@@ -209,7 +210,23 @@ export function fetchRealtimeAuto(codes, mode = 'auto') {
           .then(r => { batchMap[c] = r })
           .catch(() => {})
       )
-    ).then(() => batchMap)
+    ).then(async () => {
+      // 检查成功率：若批量+单只补齐后有效数据仍少于 20%，降级到 mock
+      const validCount = codes.filter(c => {
+        const info = batchMap[c]
+        return info && info.GSZ != null
+      }).length
+      const successRate = validCount / codes.length
+
+      if (successRate < 0.2 && codes.length > 0) {
+        // 动态导入 mock 数据模块（避免影响首屏加载）
+        const { generateMockData } = await import('./mockData.js')
+        const mockResults = generateMockData(codes)
+        mockResults.forEach(m => { batchMap[m.FCODE] = m })
+        console.warn(`[funds] 外部API有效率仅${(successRate * 100).toFixed(0)}%，自动切换到Mock数据`)
+      }
+      return batchMap
+    })
   })
 }
 
@@ -274,8 +291,8 @@ export function getLastTradingChange(code) {
  * 获取基金数据列表（主入口函数）
  */
 export async function fetchFundsLive(fundCodes, mode = 'auto') {
-  // 先获取所有基金的基本信息（名称）
-  const basicInfo = await fetchFundBasicInfo(fundCodes)
+  // 获取基本信息（网络失败时返回空对象，不阻塞主流程）
+  const basicInfo = await fetchFundBasicInfo(fundCodes).catch(() => ({}))
 
   const batchMap = await fetchRealtimeAuto(fundCodes, mode)
   const results = []
