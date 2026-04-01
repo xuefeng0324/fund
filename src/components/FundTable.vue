@@ -49,8 +49,17 @@
       <el-table-column label="阶段" width="80" #default="{ row }">
         <el-tag v-if="getPhase(row)" :type="getPhaseType(row)" size="small">{{ getPhase(row) }}</el-tag>
       </el-table-column>
-      <el-table-column label="建议" width="120" #default="{ row }">
-        <span :class="getAdviceClass(row)" class="advice-cell">{{ getAdvice(row) }}</span>
+      <el-table-column label="建议" min-width="140" #default="{ row }">
+        <div class="advice-cell">
+          <div v-if="getHoldAdvice(row)" :class="getHoldAdviceClass(row)">
+            持仓：{{ getHoldAdvice(row) }}
+          </div>
+          <div v-if="getHoldAdvice(row) && getFlatAdvice(row)" class="advice-divider">————</div>
+          <div v-if="getFlatAdvice(row)" :class="getFlatAdviceClass(row)">
+            空仓：{{ getFlatAdvice(row) }}
+          </div>
+          <span v-if="!getHoldAdvice(row) && !getFlatAdvice(row)" :class="getAdviceClass(row)">{{ getSimpleAdvice(row) }}</span>
+        </div>
       </el-table-column>
       <el-table-column label="原因" min-width="180" #default="{ row }">
         <span class="reason-cell">{{ getReason(row) }}</span>
@@ -111,7 +120,16 @@
             </div>
             <div class="card-item">
               <span class="label">建议</span>
-              <span :class="getAdviceClass(fund)">{{ getAdvice(fund) }}</span>
+              <div class="advice-detail">
+                <div v-if="getHoldAdvice(fund)" :class="getHoldAdviceClass(fund)">
+                  持仓：{{ getHoldAdvice(fund) }}
+                </div>
+                <div v-if="getHoldAdvice(fund) && getFlatAdvice(fund)" class="advice-divider">————</div>
+                <div v-if="getFlatAdvice(fund)" :class="getFlatAdviceClass(fund)">
+                  空仓：{{ getFlatAdvice(fund) }}
+                </div>
+                <span v-if="!getHoldAdvice(fund) && !getFlatAdvice(fund)" :class="getAdviceClass(fund)">{{ getSimpleAdvice(fund) }}</span>
+              </div>
             </div>
           </div>
           <div class="card-footer">
@@ -149,7 +167,16 @@
             </div>
             <div class="card-item">
               <span class="label">建议</span>
-              <span :class="getAdviceClass(fund)">{{ getAdvice(fund) }}</span>
+              <div class="advice-detail">
+                <div v-if="getHoldAdvice(fund)" :class="getHoldAdviceClass(fund)">
+                  持仓：{{ getHoldAdvice(fund) }}
+                </div>
+                <div v-if="getHoldAdvice(fund) && getFlatAdvice(fund)" class="advice-divider">————</div>
+                <div v-if="getFlatAdvice(fund)" :class="getFlatAdviceClass(fund)">
+                  空仓：{{ getFlatAdvice(fund) }}
+                </div>
+                <span v-if="!getHoldAdvice(fund) && !getFlatAdvice(fund)" :class="getAdviceClass(fund)">{{ getSimpleAdvice(fund) }}</span>
+              </div>
             </div>
           </div>
           <div class="card-footer">
@@ -305,12 +332,67 @@ function getAdvice(fund) {
   return advice?.action ?? '-'
 }
 
+// 获取持仓建议
+function getHoldAdvice(fund) {
+  const advice = props.advice[fund.FCODE]
+  return advice?.metrics?.hold_action ?? ''
+}
+
+// 获取空仓建议
+function getFlatAdvice(fund) {
+  const advice = props.advice[fund.FCODE]
+  return advice?.metrics?.flat_action ?? ''
+}
+
+// 获取简单建议（用于没有持仓/空仓区分的情况）
+function getSimpleAdvice(fund) {
+  const advice = props.advice[fund.FCODE]
+  return advice?.action ?? '-'
+}
+
 function getAdviceClass(fund) {
   const advice = props.advice[fund.FCODE]
   const action = advice?.action
+  const holdAction = advice?.metrics?.hold_action
+  const flatAction = advice?.metrics?.flat_action
+
+  // 根据主建议判断颜色
+  // 清仓、减仓 → 绿色
+  if (action?.includes('清仓') || action?.includes('减仓')) return 'advice-sell-green'
+  // 加仓、买入 → 红色
   const buyKeywords = ['买入', '加仓', '建仓', '小仓']
-  if (buyKeywords.some(k => action?.includes(k))) return 'advice-buy'
-  if (action?.includes('清仓') || action?.includes('减仓')) return 'advice-sell'
+  if (buyKeywords.some(k => action?.includes(k))) return 'advice-buy-red'
+
+  // 持有、观望 → 灰色（默认）
+  return 'advice-neutral'
+}
+
+// 获取持仓建议的颜色类
+function getHoldAdviceClass(fund) {
+  const advice = props.advice[fund.FCODE]
+  const holdAction = advice?.metrics?.hold_action
+  if (!holdAction) return ''
+
+  // 清仓、减仓、减到半仓 → 绿色（卖出/降低仓位）
+  if (holdAction.includes('清仓') || holdAction.includes('减')) return 'advice-sell-green'
+  // 持有、观望 → 灰色
+  if (holdAction.includes('持有') || holdAction.includes('观望')) return 'advice-neutral'
+  // 加仓 → 红色
+  if (holdAction.includes('加仓')) return 'advice-buy-red'
+  return ''
+}
+
+// 获取空仓建议的颜色类
+function getFlatAdviceClass(fund) {
+  const advice = props.advice[fund.FCODE]
+  const flatAction = advice?.metrics?.flat_action
+  if (!flatAction) return ''
+
+  // 观望 → 灰色
+  if (flatAction.includes('观望')) return 'advice-neutral'
+  // 买入、小仓 → 红色
+  const buyKeywords = ['买入', '建仓', '小仓']
+  if (buyKeywords.some(k => flatAction.includes(k))) return 'advice-buy-red'
   return ''
 }
 
@@ -427,13 +509,36 @@ const sortedFunds = computed(() => {
   font-weight: 700;
 }
 
+/* 建议颜色方案 */
+/* 清仓、减仓 → 绿色 */
+.advice-sell-green {
+  color: #16a34a !important;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* 加仓、买入 → 红色 */
+.advice-buy-red {
+  color: #dc2626 !important;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* 持有、观望 → 灰色 */
+.advice-neutral {
+  color: #6b7280 !important;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* 已废弃的旧样式 */
 .advice-buy {
-  color: #4f46e5 !important;
+  color: #dc2626 !important;
   font-weight: 700;
 }
 
 .advice-sell {
-  color: #dc2626 !important;
+  color: #16a34a !important;
   font-weight: 700;
 }
 
@@ -619,6 +724,19 @@ const sortedFunds = computed(() => {
 .advice-cell {
   white-space: pre-line;
   line-height: 1.6;
+}
+
+.advice-detail {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.advice-divider {
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1;
 }
 
 .time {
