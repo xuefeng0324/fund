@@ -249,6 +249,7 @@ export function fetchRealtimeAuto(codes, mode = 'auto') {
  * 获取基金基本信息（名称等）- 使用 JSONP
  */
 export function fetchFundBasicInfo(codes) {
+  console.log('[fetchFundBasicInfo] 开始, codes=', codes?.length)
   if (!codes || !codes.length) return Promise.resolve({})
 
   return new Promise((resolve) => {
@@ -258,33 +259,48 @@ export function fetchFundBasicInfo(codes) {
       '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(',')) +
       '&jsonCallBack=' + callback
 
+    console.log('[fetchFundBasicInfo] URL=', url)
+    console.log('[fetchFundBasicInfo] callback=', callback)
+
     window[callback] = (data) => {
+      console.log('[fetchFundBasicInfo] JSONP 回调触发, data=', data?.Datas?.length)
       const map = {}
       const datas = (data && data.Datas) || []
       datas.forEach(item => {
         if (!item || !item.FCODE) return
         map[item.FCODE] = item.SHORTNAME || ''
       })
+      clearTimeout(timer)
       delete window[callback]
+      if (script.parentNode) document.head.removeChild(script)
+      console.log('[fetchFundBasicInfo] 完成, map keys=', Object.keys(map).length)
       resolve(map)
     }
 
     const timer = setTimeout(() => {
+      console.warn('[fetchFundBasicInfo] 超时')
       delete window[callback]
+      if (script.parentNode) document.head.removeChild(script)
       resolve({})
     }, 10000)
 
     const script = document.createElement('script')
     script.src = url
-    script.onload = () => clearTimeout(timer)
-    script.onerror = () => {
+    script.onload = () => {
+      console.log('[fetchFundBasicInfo] script onload')
+      clearTimeout(timer)
+    }
+    script.onerror = (e) => {
+      console.error('[fetchFundBasicInfo] script onerror:', e)
       clearTimeout(timer)
       delete window[callback]
       resolve({})
     }
+    console.log('[fetchFundBasicInfo] 添加 script 到 head')
     document.head.appendChild(script)
   })
 }
+
 export function getLastTradingChange(code) {
   return fetchPingzhongdata(code).then(result => {
     // result 可能是数组或 { trend, name } 对象
