@@ -11,6 +11,9 @@
 
 import { ref } from 'vue'
 import { getFileContent } from '../api/github'
+import { getStorage, setStorage, STORAGE_KEYS } from '../utils/storage'
+
+const CONFIG_FETCH_TIMEOUT = 8000
 
 /**
  * 配置管理 Hook
@@ -36,6 +39,8 @@ export function useConfig() {
   const loading = ref(false)
   // 错误信息
   const error = ref(null)
+  // 诊断信息
+  const configDiag = ref({ tried: [], succeeded: null, failed: null, fromCache: false })
 
   /**
    * 加载配置文件
@@ -48,22 +53,61 @@ export function useConfig() {
   async function loadConfig() {
     loading.value = true
     error.value = null
+    configDiag.value.tried = []
+    configDiag.value.succeeded = null
+    configDiag.value.failed = null
+    configDiag.value.fromCache = false
 
     try {
       const t = Date.now()
+      const primaryCodes = `/fund/config/fund_codes.json?t=${t}`
+      const primaryGroups = `/fund/config/fund_groups.json?t=${t}`
+      const fallbackCodes = `https://xuefeng0324.github.io/fund/config/fund_codes.json?t=${t}`
+      const fallbackGroups = `https://xuefeng0324.github.io/fund/config/fund_groups.json?t=${t}`
 
-      // 并行请求两个配置文件
-      const [codesRes, groupsRes] = await Promise.all([
-        fetch(`/fund/config/fund_codes.json?t=${t}`),
-        fetch(`/fund/config/fund_groups.json?t=${t}`)
-      ])
+      let codes = null
+      let groups = null
 
-      if (!codesRes.ok || !groupsRes.ok) {
-        throw new Error('配置文件加载失败')
+      // Primary
+      configDiag.value.tried.push('primary')
+      try {
+        ;[codes, groups] = await Promise.all([
+          fetchJsonWithTimeout(primaryCodes),
+          fetchJsonWithTimeout(primaryGroups)
+        ])
+        configDiag.value.succeeded = 'primary'
+      } catch (e1) {
+        // Fallback
+        configDiag.value.tried.push('fallback')
+        try {
+          ;[codes, groups] = await Promise.all([
+            fetchJsonWithTimeout(fallbackCodes),
+            fetchJsonWithTimeout(fallbackGroups)
+          ])
+          configDiag.value.succeeded = 'fallback'
+        } catch (e2) {
+          // Cache
+          configDiag.value.tried.push('cache')
+          const cached = getStorage(STORAGE_KEYS.USER_CONFIG)
+          if (cached && Array.isArray(cached.fundCodes) && cached.fundCodes.length > 0 && cached.fundGroups) {
+            fundCodes.value = cached.fundCodes
+            fundGroups.value = cached.fundGroups
+            configDiag.value.fromCache = true
+            configDiag.value.succeeded = 'cache'
+            return { fundCodes: fundCodes.value, fundGroups: fundGroups.value, fromCache: true }
+          }
+          configDiag.value.failed = 'all'
+          throw new Error('配置加载失败（主路径/回退路径/本地缓存均不可用）')
+        }
       }
 
-      fundCodes.value = await codesRes.json()
-      fundGroups.value = await groupsRes.json()
+      fundCodes.value = Array.isArray(codes) ? codes : []
+      fundGroups.value = groups && typeof groups === 'object' ? groups : {}
+      setStorage(STORAGE_KEYS.USER_CONFIG, {
+        fundCodes: fundCodes.value,
+        fundGroups: fundGroups.value,
+        updatedAt: Date.now()
+      })
 
       return { fundCodes: fundCodes.value, fundGroups: fundGroups.value }
     } catch (e) {
@@ -71,6 +115,20 @@ export function useConfig() {
       return null
     } finally {
       loading.value = false
+    }
+  }
+
+  async function fetchJsonWithTimeout(url, timeout = CONFIG_FETCH_TIMEOUT) {
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null
+    const timer = setTimeout(() => {
+      if (ctrl) ctrl.abort()
+    }, timeout)
+    try {
+      const res = await fetch(url, { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      return await res.json()
+    } finally {
+      clearTimeout(timer)
     }
   }
 
@@ -112,6 +170,7 @@ export function useConfig() {
     loading,
     error,
     loadConfig,
-    loadConfigFromGitHub
+    loadConfigFromGitHub,
+    configDiag
   }
 }
