@@ -103,10 +103,16 @@ function fetchSingleBatch(codes) {
  * 获取单只基金估值（fundgz.1234567 接口）
  *
  * 使用 JSONP 方式，支持并发请求
+ * 注意：该接口有频率限制，请求过多会返回 514 错误
  */
 
 // 等待中的请求映射：code -> { resolve, reject, timer }
 const pendingRequests = new Map()
+
+// 请求队列和延迟控制
+const requestQueue = []
+let isProcessingQueue = false
+const REQUEST_DELAY = 300 // 每个请求间隔 300ms，避免频率限制
 
 // 全局回调处理所有响应
 window.jsonpgz = (data) => {
@@ -127,14 +133,20 @@ window.jsonpgz = (data) => {
   })
 }
 
-export function fetchSingleFundgz(code) {
-  return new Promise((resolve, reject) => {
-    // 如果已有相同请求在等待，复用
+// 处理请求队列
+async function processQueue() {
+  if (isProcessingQueue) return
+  isProcessingQueue = true
+
+  while (requestQueue.length > 0) {
+    const { code, resolve, reject } = requestQueue.shift()
+
+    // 检查是否已有相同请求在等待
     const existing = pendingRequests.get(code)
     if (existing) {
       existing.resolve = resolve
       existing.reject = reject
-      return
+      continue
     }
 
     const timer = setTimeout(() => {
@@ -149,13 +161,32 @@ export function fetchSingleFundgz(code) {
     script.onerror = () => {
       pendingRequests.delete(code)
       clearTimeout(timer)
-      reject(new Error('jsonp script error'))
-      document.head.removeChild(script)
+      reject(new Error('jsonp error (likely frequency capped)'))
+      if (script.parentNode) document.head.removeChild(script)
+      // 频率限制时，暂停一段时间
+      if (requestQueue.length > 0) {
+        setTimeout(() => processQueue(), 2000)
+        isProcessingQueue = false
+        return
+      }
     }
     script.onload = () => {
-      document.head.removeChild(script)
+      if (script.parentNode) document.head.removeChild(script)
     }
     document.head.appendChild(script)
+
+    // 等待延迟后再处理下一个
+    await new Promise(r => setTimeout(r, REQUEST_DELAY))
+  }
+
+  isProcessingQueue = false
+}
+
+export function fetchSingleFundgz(code) {
+  return new Promise((resolve, reject) => {
+    // 加入队列
+    requestQueue.push({ code, resolve, reject })
+    processQueue()
   })
 }
 
