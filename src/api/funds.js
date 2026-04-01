@@ -194,7 +194,7 @@ export function fetchSingleFundgz(code) {
  * 自动获取基金实时估值（批量 + 单只补齐）
  */
 export function fetchRealtimeAuto(codes, mode = 'auto') {
-  return fetchRealtimeBatch(codes).catch(() => ({})).then(batchMap => {
+  return fetchRealtimeBatch(codes).then(batchMap => {
     const missing = []
     codes.forEach(c => {
       const info = batchMap[c]
