@@ -51,18 +51,28 @@
       </el-table-column>
       <el-table-column label="建议" min-width="140" #default="{ row }">
         <div class="advice-cell">
-          <div v-if="getHoldAdvice(row)" :class="getHoldAdviceClass(row)">
-            持仓：{{ getHoldAdvice(row) }}
-          </div>
-          <div v-if="getHoldAdvice(row) && getFlatAdvice(row)" class="advice-divider">————</div>
-          <div v-if="getFlatAdvice(row)" :class="getFlatAdviceClass(row)">
-            空仓：{{ getFlatAdvice(row) }}
-          </div>
-          <span v-if="!getHoldAdvice(row) && !getFlatAdvice(row)" :class="getAdviceClass(row)">{{ getSimpleAdvice(row) }}</span>
+          <template v-if="props.adviceLoading && !props.advice[row.FCODE]">
+            <span class="loading-text">计算中...</span>
+          </template>
+          <template v-else>
+            <div v-if="getHoldAdvice(row)" :class="getHoldAdviceClass(row)">
+              持仓：{{ getHoldAdvice(row) }}
+            </div>
+            <div v-if="getHoldAdvice(row) && getFlatAdvice(row)" class="advice-divider">————</div>
+            <div v-if="getFlatAdvice(row)" :class="getFlatAdviceClass(row)">
+              空仓：{{ getFlatAdvice(row) }}
+            </div>
+            <span v-if="!getHoldAdvice(row) && !getFlatAdvice(row)" :class="getAdviceClass(row)">{{ getSimpleAdvice(row) }}</span>
+          </template>
         </div>
       </el-table-column>
       <el-table-column label="原因" min-width="180" #default="{ row }">
-        <span class="reason-cell">{{ getReason(row) }}</span>
+        <span class="reason-cell">
+          <template v-if="props.adviceLoading && !props.advice[row.FCODE]">
+            <span class="loading-text">计算中...</span>
+          </template>
+          <template v-else>{{ getReason(row) }}</template>
+        </span>
       </el-table-column>
       <el-table-column prop="GZTIME" label="更新时间" width="110" sortable />
     </el-table>
@@ -77,31 +87,22 @@
         shadow="hover"
         @click="toggleExpand(fund)"
       >
-        <!-- 移动端收起状态：第一行基金名称+涨跌幅，第二行代码+时间 -->
-        <template v-if="isMobile && !isExpanded(fund)">
-          <div class="card-row">
+        <!-- 标题行（始终显示，位置固定） -->
+        <div class="card-title-row">
+          <div class="fund-title-info">
             <span class="fund-name">{{ getFundName(fund) }}</span>
+            <span class="fund-code">{{ fund.FCODE }}</span>
+          </div>
+          <div class="fund-change-wrap">
             <span class="fund-change" :class="getChangeClass(fund)">
               {{ formatChange(fund) }}
             </span>
+            <span class="time card-collapsed-time">{{ fund.GZTIME || fund.PDATE }}</span>
           </div>
-          <div class="card-row">
-            <span class="fund-code">{{ fund.FCODE }}</span>
-            <span class="time">{{ fund.GZTIME || fund.PDATE }}</span>
-          </div>
-        </template>
+        </div>
 
-        <!-- 移动端展开状态：显示完整信息 -->
-        <template v-if="isMobile && isExpanded(fund)">
-          <div class="card-header">
-            <div class="fund-info">
-              <span class="fund-name">{{ getFundName(fund) }}</span>
-              <span class="fund-code">{{ fund.FCODE }}</span>
-            </div>
-            <div class="fund-change" :class="getChangeClass(fund)">
-              {{ formatChange(fund) }}
-            </div>
-          </div>
+        <!-- 展开后的详细信息 -->
+        <div class="card-expand-content">
           <div class="card-body">
             <div class="card-item">
               <span class="label">估算净值</span>
@@ -121,22 +122,32 @@
             <div class="card-item">
               <span class="label">建议</span>
               <div class="advice-detail">
-                <div v-if="getHoldAdvice(fund)" :class="getHoldAdviceClass(fund)">
-                  持仓：{{ getHoldAdvice(fund) }}
-                </div>
-                <div v-if="getHoldAdvice(fund) && getFlatAdvice(fund)" class="advice-divider">————</div>
-                <div v-if="getFlatAdvice(fund)" :class="getFlatAdviceClass(fund)">
-                  空仓：{{ getFlatAdvice(fund) }}
-                </div>
-                <span v-if="!getHoldAdvice(fund) && !getFlatAdvice(fund)" :class="getAdviceClass(fund)">{{ getSimpleAdvice(fund) }}</span>
+                <template v-if="props.adviceLoading && !props.advice[fund.FCODE]">
+                  <span class="loading-text">计算中...</span>
+                </template>
+                <template v-else>
+                  <div v-if="getHoldAdvice(fund)" :class="getHoldAdviceClass(fund)">
+                    持仓：{{ getHoldAdvice(fund) }}
+                  </div>
+                  <div v-if="getHoldAdvice(fund) && getFlatAdvice(fund)" class="advice-divider">————</div>
+                  <div v-if="getFlatAdvice(fund)" :class="getFlatAdviceClass(fund)">
+                    空仓：{{ getFlatAdvice(fund) }}
+                  </div>
+                  <span v-if="!getHoldAdvice(fund) && !getFlatAdvice(fund)" :class="getAdviceClass(fund)">{{ getSimpleAdvice(fund) }}</span>
+                </template>
               </div>
             </div>
           </div>
           <div class="card-footer">
-            <span class="reason">{{ getReason(fund) }}</span>
+            <span class="reason">
+              <template v-if="props.adviceLoading && !props.advice[fund.FCODE]">
+                <span class="loading-text">计算中...</span>
+              </template>
+              <template v-else>{{ getReason(fund) }}</template>
+            </span>
             <span class="time">{{ fund.GZTIME || fund.PDATE }}</span>
           </div>
-        </template>
+        </div>
 
         <!-- PC端：始终显示完整信息 -->
         <template v-if="!isMobile">
@@ -192,13 +203,14 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 
 const props = defineProps({
   title: { type: String, default: '' },
   funds: { type: Array, default: () => [] },
   advice: { type: Object, default: () => ({}) },
-  loading: { type: Boolean, default: false }
+  loading: { type: Boolean, default: false },
+  adviceLoading: { type: Boolean, default: false }
 })
 
 // 获取基金名称
@@ -211,6 +223,15 @@ const sortAsc = ref(false)
 const windowWidth = ref(window.innerWidth)
 const expandedFunds = ref(new Set()) // 展开的基金
 const allExpanded = ref(false) // 是否全部展开
+
+// 当 funds 变化时重置展开状态
+watch(() => props.funds, (newFunds, oldFunds) => {
+  // 只在基金列表真正变化时重置（不是首次加载）
+  if (oldFunds && oldFunds.length > 0 && newFunds.length !== oldFunds.length) {
+    expandedFunds.value.clear()
+    allExpanded.value = false
+  }
+}, { deep: false })
 
 function checkMobile() {
   return windowWidth.value < 768
@@ -624,21 +645,77 @@ const sortedFunds = computed(() => {
 .fund-card {
   border-radius: 12px;
   border: 1px solid #e5e7eb;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fund-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .fund-card :deep(.el-card__body) {
   padding: 16px;
 }
 
-/* 移动端收起状态的两行样式 */
-.card-row {
+/* 卡片标题行（始终显示，位置固定） */
+.card-title-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
 }
 
-.card-row + .card-row {
-  margin-top: 6px;
+.fund-title-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fund-title-info .fund-name {
+  word-break: break-all;
+}
+
+.fund-change-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.card-collapsed-time {
+  transition: opacity 0.3s ease;
+}
+
+.fund-card.expanded .card-collapsed-time {
+  opacity: 0;
+}
+
+/* 卡片展开内容动画 */
+.card-expand-content {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1),
+              opacity 0.3s ease,
+              margin-top 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  margin-top: 0;
+}
+
+.fund-card.expanded .card-expand-content {
+  max-height: 300px;
+  opacity: 1;
+  margin-top: 12px;
+}
+
+/* PC端隐藏移动端的标题行和展开内容 */
+@media (min-width: 768px) {
+  .card-title-row,
+  .card-expand-content {
+    display: none;
+  }
 }
 
 .card-header {
@@ -746,6 +823,11 @@ const sortedFunds = computed(() => {
   margin-left: 8px;
 }
 
+.loading-text {
+  color: #9ca3af;
+  font-style: italic;
+}
+
 @media (max-width: 768px) {
   .fund-section {
     margin-top: 16px;
@@ -754,6 +836,62 @@ const sortedFunds = computed(() => {
   .sub-section-title {
     font-size: 14px;
     margin-bottom: 24px;
+  }
+}
+
+/* 卡片淡入动画 - 模仿 Animate.css fadeInUp */
+.fund-card {
+  animation-name: fadeInUp;
+  animation-duration: 0.6s;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fund-card:nth-child(1) { animation-delay: 0.05s; }
+.fund-card:nth-child(2) { animation-delay: 0.1s; }
+.fund-card:nth-child(3) { animation-delay: 0.15s; }
+.fund-card:nth-child(4) { animation-delay: 0.2s; }
+.fund-card:nth-child(5) { animation-delay: 0.25s; }
+.fund-card:nth-child(6) { animation-delay: 0.3s; }
+.fund-card:nth-child(7) { animation-delay: 0.35s; }
+.fund-card:nth-child(8) { animation-delay: 0.4s; }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+/* 表格行淡入动画 */
+.fund-table :deep(.el-table__row) {
+  animation-name: fadeInLeft;
+  animation-duration: 0.5s;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fund-table :deep(.el-table__row:nth-child(1)) { animation-delay: 0.05s; }
+.fund-table :deep(.el-table__row:nth-child(2)) { animation-delay: 0.1s; }
+.fund-table :deep(.el-table__row:nth-child(3)) { animation-delay: 0.15s; }
+.fund-table :deep(.el-table__row:nth-child(4)) { animation-delay: 0.2s; }
+.fund-table :deep(.el-table__row:nth-child(5)) { animation-delay: 0.25s; }
+.fund-table :deep(.el-table__row:nth-child(6)) { animation-delay: 0.3s; }
+.fund-table :deep(.el-table__row:nth-child(7)) { animation-delay: 0.35s; }
+.fund-table :deep(.el-table__row:nth-child(8)) { animation-delay: 0.4s; }
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translate3d(-20px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
   }
 }
 </style>

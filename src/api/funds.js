@@ -12,27 +12,6 @@ const TIMEOUT_MS = 15000
 // ===== 工具函数 =====
 
 /**
- * 发送 JSON 请求
- */
-function fetchJSON(url, timeoutMs = TIMEOUT_MS) {
-  return new Promise((resolve, reject) => {
-    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null
-    const timer = setTimeout(() => {
-      if (ctrl) ctrl.abort()
-      reject(new Error('timeout'))
-    }, timeoutMs)
-
-    fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-      signal: ctrl ? ctrl.signal : undefined
-    })
-      .then(r => r.json())
-      .then(d => { clearTimeout(timer); resolve(d) })
-      .catch(e => { clearTimeout(timer); reject(e) })
-  })
-}
-
-/**
  * 安全转换为浮点数
  */
 function safeFloat(v) {
@@ -80,23 +59,27 @@ function fetchSingleBatch(codes) {
     'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
     '?pageIndex=1&pageSize=200&plat=Android&appType=ttjj&product=EFund&Version=1' +
     '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(','))
-  return fetchJSON(url).then(data => {
-    const map = {}
-    const datas = (data && data.Datas) || []
-    datas.forEach(item => {
-      if (!item || !item.FCODE) return
-      map[item.FCODE] = {
-        FCODE: item.FCODE,
-        SHORTNAME: item.SHORTNAME || '',
-        GSZ: safeFloat(item.GSZ),
-        GSZZL: safeFloat(item.GSZZL),
-        DWJZ: safeFloat(item.NAV),
-        GZTIME: item.GZTIME || '',
-        PDATE: item.PDATE || ''
-      }
+
+  return fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      const map = {}
+      const datas = (data && data.Datas) || []
+      datas.forEach(item => {
+        if (!item || !item.FCODE) return
+        map[item.FCODE] = {
+          FCODE: item.FCODE,
+          SHORTNAME: item.SHORTNAME || '',
+          GSZ: safeFloat(item.GSZ),
+          GSZZL: safeFloat(item.GSZZL),
+          DWJZ: safeFloat(item.NAV),
+          GZTIME: item.GZTIME || '',
+          PDATE: item.PDATE || ''
+        }
+      })
+      return map
     })
-    return map
-  })
+    .catch(() => ({}))
 }
 
 /**
@@ -112,7 +95,7 @@ const pendingRequests = new Map()
 // 请求队列和延迟控制
 const requestQueue = []
 let isProcessingQueue = false
-const REQUEST_DELAY = 300 // 每个请求间隔 300ms，避免频率限制
+const REQUEST_DELAY = 100 // 每个请求间隔 100ms，避免频率限制
 
 // 全局回调处理所有响应
 window.jsonpgz = (data) => {
@@ -165,7 +148,7 @@ async function processQueue() {
       if (script.parentNode) document.head.removeChild(script)
       // 频率限制时，暂停一段时间
       if (requestQueue.length > 0) {
-        setTimeout(() => processQueue(), 2000)
+        setTimeout(() => processQueue(), 500)
         isProcessingQueue = false
         return
       }
@@ -192,84 +175,43 @@ export function fetchSingleFundgz(code) {
 
 /**
  * 自动获取基金实时估值（批量 + 单只补齐）
- * 当外部 API 全部失败时，自动降级到本地 mock 数据
+ *
+ * 返回批量结果，缺失基金的 fundgz 请求列表
  */
-export function fetchRealtimeAuto(codes, mode = 'auto') {
-  return fetchRealtimeBatch(codes).then(batchMap => {
-    const missing = []
-    codes.forEach(c => {
-      const info = batchMap[c]
-      if (!info || info.GSZ == null) missing.push(c)
-    })
-    if (!missing.length) return batchMap
-
-    // 并行请求缺失的基金
-    return Promise.all(
-      missing.map(c =>
-        fetchSingleFundgz(c)
-          .then(r => { batchMap[c] = r })
-          .catch(() => {})
-      )
-    ).then(async () => {
-      // 检查成功率：若批量+单只补齐后有效数据仍少于 20%，降级到 mock
-      const validCount = codes.filter(c => {
-        const info = batchMap[c]
-        return info && info.GSZ != null
-      }).length
-      const successRate = validCount / codes.length
-
-      if (successRate < 0.2 && codes.length > 0) {
-        // 动态导入 mock 数据模块（避免影响首屏加载）
-        const { generateMockData } = await import('./mockData.js')
-        const mockResults = generateMockData(codes)
-        mockResults.forEach(m => { batchMap[m.FCODE] = m })
-        console.warn(`[funds] 外部API有效率仅${(successRate * 100).toFixed(0)}%，自动切换到Mock数据`)
-      }
-      return batchMap
-    })
+export async function fetchRealtimeAuto(codes, mode = 'auto') {
+  const batchMap = await fetchRealtimeBatch(codes)
+  const missing = []
+  codes.forEach(c => {
+    const info = batchMap[c]
+    if (!info || info.GSZ == null) missing.push(c)
   })
+  return { batchMap, missing }
 }
 
 /**
- * 获取基金基本信息（名称等）- 使用 JSONP
+ * 获取基金基本信息（名称等）
  */
 export function fetchFundBasicInfo(codes) {
   if (!codes || !codes.length) return Promise.resolve({})
 
-  return new Promise((resolve) => {
-    const callback = 'jsonp_basic_' + Date.now() + '_' + Math.random().toString(36).slice(2)
-    const url = 'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
-      '?pageIndex=1&pageSize=' + codes.length + '&plat=Android&appType=ttjj&product=EFund&Version=1' +
-      '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(',')) +
-      '&jsonCallBack=' + callback
+  const url = 'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
+    '?pageIndex=1&pageSize=' + codes.length + '&plat=Android&appType=ttjj&product=EFund&Version=1' +
+    '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(','))
 
-    window[callback] = (data) => {
+  return fetch(url)
+    .then(r => r.json())
+    .then(data => {
       const map = {}
       const datas = (data && data.Datas) || []
       datas.forEach(item => {
         if (!item || !item.FCODE) return
         map[item.FCODE] = item.SHORTNAME || ''
       })
-      delete window[callback]
-      resolve(map)
-    }
-
-    const timer = setTimeout(() => {
-      delete window[callback]
-      resolve({})
-    }, 10000)
-
-    const script = document.createElement('script')
-    script.src = url
-    script.onload = () => clearTimeout(timer)
-    script.onerror = () => {
-      clearTimeout(timer)
-      delete window[callback]
-      resolve({})
-    }
-    document.head.appendChild(script)
-  })
+      return map
+    })
+    .catch(() => ({}))
 }
+
 export function getLastTradingChange(code) {
   return fetchPingzhongdata(code).then(result => {
     // result 可能是数组或 { trend, name } 对象
@@ -288,13 +230,14 @@ export function getLastTradingChange(code) {
 }
 
 /**
- * 获取基金数据列表（主入口函数）
+ * 构建基金结果数组
+ *
+ * @param {string[]} fundCodes 基金代码数组
+ * @param {Object} batchMap 批量结果映射
+ * @param {Object} basicInfo 基金名称映射
+ * @returns {Object} { results, noEstimateCodes }
  */
-export async function fetchFundsLive(fundCodes, mode = 'auto') {
-  // 获取基本信息（网络失败时返回空对象，不阻塞主流程）
-  const basicInfo = await fetchFundBasicInfo(fundCodes).catch(() => ({}))
-
-  const batchMap = await fetchRealtimeAuto(fundCodes, mode)
+export function buildResults(fundCodes, batchMap, basicInfo = {}) {
   const results = []
   const noEstimateCodes = []
   const today = todayStr()
@@ -307,22 +250,25 @@ export async function fetchFundsLive(fundCodes, mode = 'auto') {
         info.GSZ = info.DWJZ
         info.GZTIME = pdate
       }
-      // 确保有名称
-      if (!info.SHORTNAME && basicInfo[code]) {
-        info.SHORTNAME = basicInfo[code]
-      }
       results.push(info)
     } else {
       noEstimateCodes.push({ code, info: info || {} })
     }
   })
+  return { results, noEstimateCodes }
+}
 
-  if (!noEstimateCodes.length) return results
-
-  // 并行获取无估值基金的上一交易日涨跌
+/**
+ * 获取无估值基金的上一交易日涨跌数据
+ *
+ * @param {Array} noEstimateCodes 无估值基金列表 [{ code, info }]
+ * @param {Object} basicInfo 基金名称映射
+ * @returns {Promise<Array>} 补充的基金数据数组
+ */
+export async function fetchNoEstimateFunds(noEstimateCodes, basicInfo = {}) {
+  const results = []
   const promises = noEstimateCodes.map(async item => {
     const lcd = await getLastTradingChange(item.code)
-    // 优先使用 lcd 返回的名称
     const shortName = lcd.name || basicInfo[item.code] || item.info.SHORTNAME || ''
     results.push({
       FCODE: item.code,

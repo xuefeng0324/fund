@@ -22,10 +22,10 @@
       <el-button
         type="primary"
         :loading="loading"
+        :disabled="loading"
         @click="$emit('refresh')"
       >
-        <el-icon v-if="!props.loading"><Refresh /></el-icon>
-        {{ props.loading ? '刷新中' : '刷新' }}
+        {{ loading ? '更新中' : '更新' }}
       </el-button>
 
       <!-- PC端更新时间 -->
@@ -245,6 +245,23 @@ function formatTime(date) {
 
 .toolbar :deep(.el-button) {
   border-radius: 10px;
+}
+
+.toolbar :deep(.el-button .is-loading) {
+  animation: rotating 1.5s linear infinite;
+}
+
+.is-loading-btn {
+  cursor: wait;
+}
+
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .toolbar :deep(.el-input__wrapper) {

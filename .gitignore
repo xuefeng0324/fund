@@ -11,9 +11,6 @@ intraday_store.json
 # Node modules (Playwright verification)
 node_modules/
 
-# Local runtime/cache data
-intraday_store.json
-
 # Verification artifacts
 artifacts/
 

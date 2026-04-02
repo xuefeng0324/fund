@@ -6,6 +6,11 @@
 
 | 版本 | 发布日期 | 说明 |
 |------|----------|------|
+| v2.1.8 | 2026-04-02 | 基金估值即时显示：批量结果先展示，fundgz 结果异步补充 |
+| v2.1.7 | 2026-04-02 | 优化加载体验：估算涨跌先展示，建议原因异步加载 |
+| v2.1.6 | 2026-04-02 | 代码清理：移除调试代码、Mock 数据、诊断面板 |
+| v2.1.5 | 2026-04-01 | 修复 fundmobapi 接口调用问题，该接口不支持 JSONP |
+| v2.1.4 | 2026-04-01 | 修复 GitHub Pages CORS 问题，部分接口改用 JSONP |
 | v2.1.3 | 2026-04-01 | 修复 fundgz API 频率限制问题，请求队列串行处理 |
 | v2.1.2 | 2026-04-01 | 建议颜色方案调整，清仓减仓绿色，持有观望灰色，买入加仓红色 |
 | v2.1.1 | 2026-03-31 | 添加定时自动刷新功能，每2分钟自动更新数据 |
@@ -49,7 +54,6 @@ fund/
 │   ├── composables/             # 组合式函数
 │   │   ├── useFunds.js          # 基金数据逻辑
 │   │   ├── useIndex.js          # 指数数据逻辑
-│   │   ├── useKDJ.js            # KDJ 计算逻辑
 │   │   ├── useAdvice.js         # 买卖建议逻辑
 │   │   ├── useAuth.js           # 密钥验证逻辑
 │   │   └── useConfig.js         # 配置加载逻辑
@@ -188,12 +192,12 @@ npm run preview
 
 | 功能 | 外部 API | 调用方式 |
 |------|----------|---------|
-| 批量基金估值 | `fundmobapi.eastmoney.com` | fetch（开发时通过代理） |
+| 批量基金估值 | `fundmobapi.eastmoney.com` | fetch（支持 CORS） |
 | 单只估值补齐 | `fundgz.1234567.com.cn` | JSONP |
-| 指数快照 | `push2.eastmoney.com` | fetch（开发时通过代理） |
-| 净值数据 | `fund.eastmoney.com/pingzhongdata` | fetch（开发时通过代理） |
+| 指数快照 | `push2.eastmoney.com` | JSONP |
+| 净值数据 | `fund.eastmoney.com/pingzhongdata` | script 标签 |
 
-> **注意**：开发环境下通过 Vite 代理绕过 CORS 限制，生产环境部署到 GitHub Pages 后可直接访问这些 API（大多数支持跨域）。
+> **注意**：`fundmobapi.eastmoney.com` 支持 CORS，可直接使用 fetch。其他接口使用 JSONP 或 script 标签加载方式绕过 CORS 限制。
 
 ## 部署
 
@@ -202,10 +206,25 @@ npm run preview
 推送到 `lyl-dev-claude` 分支会自动触发 GitHub Actions 部署：
 
 ```bash
+# 构建并提交
+npm run build
 git add .
 git commit -m "update"
 git push origin lyl-dev-claude
 ```
+
+**提交规范**：
+
+提交代码前必须完成以下检查：
+
+| 项目 | 说明 |
+|------|------|
+| 代码审查 | 检查代码质量，确保逻辑正确 |
+| 补充注释 | 为新增/修改的代码添加必要注释 |
+| 更新版本信息 | README 顶部版本表添加新版本 |
+| 简要更新日志 | README 底部更新日志添加简要说明 |
+| 更新 changelog | `changelog/` 目录添加详细变更记录 |
+| 部署 dist 产物 | 运行 `npm run build` 并提交 dist 目录 |
 
 **在线地址：** https://xuefeng0324.github.io/fund/
 
@@ -238,12 +257,72 @@ npm run build
 
 详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期记录。
 
+### v2.1.5 (2026-04-01)
+
+**Bug 修复**
+- 修复 `fundmobapi.eastmoney.com` 接口调用问题
+- 该接口不支持 JSONP，返回纯 JSON 格式，改回 fetch 方式
+- 添加 vConsole 调试工具便于生产环境排查问题
+
+**问题原因**
+- `fundmobapi.eastmoney.com` 接口支持 CORS，可直接使用 fetch
+- 之前误以为需要 JSONP，导致回调无法触发，请求卡住
+- `push2.eastmoney.com` 和 `fundgz.1234567.com.cn` 支持 JSONP
+
+### v2.1.4 (2026-04-01)
+
+**Bug 修复**
+- 修复 GitHub Pages CORS 跨域问题
+- `push2.eastmoney.com` 改用 JSONP（参数 `cb`）
+- `fundgz.1234567.com.cn` 使用 JSONP
+- 删除无用的 `fetchJSON` 函数
+
+**技术变更**
+- 移除自定义请求头避免触发 CORS 预检
+- 根据接口特性选择合适的调用方式
+
+### v2.1.8 (2026-04-02)
+
+**体验优化**
+- 基金估值即时显示：批量结果立即展示，fundgz 异步补充
+- 无估值基金快速显示上一交易日涨跌数据
+- 添加 fadeInUp/fadeInLeft 淡入动画效果
+- 移动端卡片展开/收起动画优化
+
+**Bug 修复**
+- 修复 JSONP 回调函数时序问题
+- 修复管理基金列表名称不显示问题
+
+**UI 改进**
+- 按钮文字从"刷新"改为"更新"
+- 卡片布局优化，基金名称和涨跌幅位置固定
+
+### v2.1.7 (2026-04-02)
+
+**体验优化**
+- 估算涨跌先展示，建议原因异步加载
+- 基金数据和指数数据加载完成后立即显示
+- 建议计算在后台进行，不阻塞主界面
+
+**代码优化**
+- 删除未使用的 useKDJ.js 组合式函数
+- 补充 API 模块注释
+- 移除无用代码和参数
+
+### v2.1.6 (2026-04-02)
+
+**代码清理**
+- 移除 vConsole 调试工具
+- 移除 Mock 数据降级代码
+- 移除诊断面板
+- 移除所有调试日志
+- 优化 fundgz 请求间隔为 100ms，频率限制暂停为 0.5 秒
+
 ### v2.1.3 (2026-04-01)
 
 **Bug 修复**
 - 修复 fundgz API 频率限制问题（514 错误）
 - 添加请求队列，串行处理请求避免并发过多
-- 每个请求间隔 300ms，频率限制时暂停 2 秒
 
 ### v2.1.2 (2026-04-01)
 

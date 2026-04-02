@@ -1,5 +1,10 @@
 /**
  * 买卖建议组合式函数
+ *
+ * 基于波段心法计算基金的买卖建议：
+ * - 使用 MA30/MA60 均线判断趋势
+ * - 使用 KDJ 指标判断超买超卖
+ * - 使用周K判断牛熊市
  */
 
 import { ref } from 'vue'
@@ -14,14 +19,23 @@ import {
   pctChange
 } from '../utils/kdj'
 
+/**
+ * 买卖建议管理 Hook
+ */
 export function useAdvice() {
+  /** @type {import('vue').Ref<Object>} 建议数据 { code: advice } */
   const adviceData = ref({})
+  /** @type {import('vue').Ref<boolean>} 加载状态 */
   const loading = ref(false)
 
   /**
    * 计算单只基金的买卖建议
+   *
+   * @param {string} code - 基金代码
+   * @param {number} gszzl - 估算涨跌幅（可选）
+   * @returns {Promise<Object>} 建议对象 { action, reasons, metrics }
    */
-  async function getTradeAdvice(code, gszzl = null, hasPosition = true) {
+  async function getTradeAdvice(code, gszzl = null) {
     try {
       const result = await fetchPingzhongdata(code)
       const trend = result.trend || []
@@ -30,12 +44,13 @@ export function useAdvice() {
         return { action: '观望', reasons: ['无法获取净值序列'], metrics: {} }
       }
 
+      // 日线数据
       const closes = trend.map(it => it.y).filter(y => y != null)
       const lastNav = closes[closes.length - 1]
       const ma30 = movingAverage(closes, 30)
       const ma60 = movingAverage(closes, 60)
 
-      // KDJ
+      // KDJ 指标
       const kdj = computeKDJ(closes, 9)
 
       // 周K数据
@@ -45,7 +60,7 @@ export function useAdvice() {
       const ma30Weekly = movingAverage(weeklyCloses, 30)
       const ma60Weekly = movingAverage(weeklyCloses, 60)
 
-      // 死叉/前高/主升浪
+      // 计算历史均线序列（用于检测死叉）
       const ma30List = []
       const ma60List = []
       for (let i = 0; i < closes.length; i++) {
@@ -53,6 +68,7 @@ export function useAdvice() {
         ma60List.push(i >= 59 ? movingAverage(closes.slice(0, i + 1), 60) : null)
       }
 
+      // 死叉/前高/主升浪判断
       const hasDeadCross = checkDeadCross(ma30List, ma60List) !== null
       const prevHigh = getPrevHighBeforeDeadCross(closes, ma30List, ma60List)
       const breakoutPrevHigh = prevHigh != null && lastNav > prevHigh
@@ -77,16 +93,22 @@ export function useAdvice() {
         gszzl
       }
 
-      return buildAdvice(metrics, gszzl, hasPosition)
+      return buildAdvice(metrics, gszzl)
     } catch (e) {
       return { action: '观望', reasons: ['计算错误'], metrics: {} }
     }
   }
 
   /**
-   * 构建建议
+   * 构建买卖建议
+   *
+   * 建议优先级：清仓 > 止损 > 止盈 > 买入 > 持有/观望
+   *
+   * @param {Object} metrics - 技术指标数据
+   * @param {number} gszzl - 估算涨跌幅
+   * @returns {Object} 建议对象
    */
-  function buildAdvice(metrics, gszzl, hasPosition) {
+  function buildAdvice(metrics, gszzl) {
     const { ma30, ma60, latest, kdj_j, weekly_close, ma30_weekly, ma60_weekly, has_dead_cross, prev_high, breakout_prev_high, is_main_rise } = metrics
 
     const holdReasons = []
@@ -99,7 +121,7 @@ export function useAdvice() {
     const above30 = latest != null && ma30 != null && latest >= ma30
     const z = gszzl != null ? parseFloat(gszzl) : null
 
-    // 1. 清仓规则：周K跌破60日线
+    // 规则1：清仓 - 周K跌破60日线（熊市信号）
     if (weekly_close != null && ma60_weekly != null && weekly_close < ma60_weekly) {
       phase = '熊市'
       holdAction = '清仓'
@@ -109,7 +131,7 @@ export function useAdvice() {
       return { action: '清仓', reasons: holdReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons } }
     }
 
-    // 2. 止损规则：跌破30日线
+    // 规则2：止损 - 跌破30日线
     if (!above30) {
       phase = '止损'
       holdAction = '减到半仓'
@@ -119,7 +141,7 @@ export function useAdvice() {
       return { action: '减仓', reasons: holdReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons } }
     }
 
-    // 3. 止盈规则
+    // 规则3：止盈 - 有涨幅且站上60线或突破前高
     const canTakeProfit = above60 || breakout_prev_high
     if (canTakeProfit && z != null && z > 0) {
       phase = '持有'
@@ -139,11 +161,11 @@ export function useAdvice() {
       }
     }
 
-    // 4. 买入规则
+    // 规则4：买入 - 跌幅大于1%
     const canBuy = z != null && z <= -1
 
     if (canBuy) {
-      // 波段心法1
+      // 波段心法1：周K在60线上方 + 日K跌破60线
       if (weekly_close != null && ma60_weekly != null && weekly_close >= ma60_weekly && !above60) {
         phase = '波段心法1'
         holdAction = '持有'
@@ -153,7 +175,7 @@ export function useAdvice() {
         return { action: '波段买入1', reasons: flatReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons } }
       }
 
-      // 波段心法2
+      // 波段心法2：日K在60线上方 + 未突破前高
       if (above60 && !breakout_prev_high) {
         phase = '波段心法2'
         holdAction = '持有'
@@ -166,7 +188,7 @@ export function useAdvice() {
         return { action: '波段买入2', reasons: flatReasons, metrics: { ...metrics, phase, hold_action: holdAction, flat_action: flatAction, hold_reasons: holdReasons, flat_reasons: flatReasons } }
       }
 
-      // 波段心法3
+      // 波段心法3：突破前高后回踩30日线
       if (breakout_prev_high && !above60 && has_dead_cross) {
         if (weekly_close != null && ma30_weekly != null) {
           const dist = pctChange(weekly_close, ma30_weekly)
@@ -181,7 +203,7 @@ export function useAdvice() {
         }
       }
 
-      // 反弹心法
+      // 反弹心法：主升后回调 + J值低位
       if (is_main_rise && above30 && kdj_j != null && kdj_j < 20) {
         phase = '反弹心法'
         holdAction = '持有'
@@ -192,7 +214,7 @@ export function useAdvice() {
       }
     }
 
-    // 默认
+    // 默认：趋势正常
     phase = '观望'
     holdAction = '持有'
     holdReasons.push('趋势正常')
@@ -203,6 +225,8 @@ export function useAdvice() {
 
   /**
    * 批量加载建议
+   *
+   * @param {string[]} codes - 基金代码数组
    */
   async function loadAdvice(codes) {
     if (!codes || !codes.length) return
@@ -217,7 +241,6 @@ export function useAdvice() {
 
       const results = await Promise.all(promises)
       adviceData.value = Object.fromEntries(results)
-    } catch (e) {
     } finally {
       loading.value = false
     }

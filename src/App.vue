@@ -21,12 +21,14 @@
         :funds="filteredNormalFunds"
         :advice="adviceData"
         :loading="loading"
+        :advice-loading="adviceLoading"
       />
       <FundTable
         title="上一交易日涨跌"
         :funds="filteredSpecialFunds"
         :advice="adviceData"
         :loading="loading"
+        :advice-loading="adviceLoading"
         style="margin-top: 16px;"
       />
     </div>
@@ -38,34 +40,6 @@
       @saved="onFundSaved"
     />
     <CustomAlert />
-    <!-- 诊断面板 -->
-    <div v-if="showDiag" class="diag-panel">
-      <div class="diag-title">数据链路诊断 <button class="diag-close" @click="showDiag = false">×</button></div>
-      <div class="diag-section">
-        <div class="diag-row">
-          <span class="diag-label">配置加载：</span>
-          <span :class="['diag-val', diagConfigClass]">{{ configDiag.succeeded || (configDiag.failed ? '失败:' + configDiag.failed : '加载中...') }}</span>
-        </div>
-        <div v-if="configDiag.tried && configDiag.tried.length" class="diag-row">
-          <span class="diag-label">已尝试路径：</span>
-          <span class="diag-val">{{ configDiag.tried.join(' → ') }}</span>
-        </div>
-        <div class="diag-row">
-          <span class="diag-label">配置基金数：</span>
-          <span class="diag-val">{{ fundCodes.length }}</span>
-        </div>
-        <div class="diag-row">
-          <span class="diag-label">数据请求：</span>
-          <span :class="['diag-val', funds.length > 0 ? 'ok' : 'err']">{{ funds.length > 0 ? '有数据' : '无数据' }}</span>
-        </div>
-        <div v-if="configError" class="diag-row">
-          <span class="diag-label">配置错误：</span>
-          <span class="diag-val err">{{ configError }}</span>
-        </div>
-      </div>
-      <div class="diag-tip">刷新后重新检测，开发者可据此判断卡在哪一步</div>
-    </div>
-    <button class="diag-toggle" @click="showDiag = !showDiag">{{ showDiag ? '隐藏诊断' : '诊断' }}</button>
   </div>
 </template>
 
@@ -88,11 +62,11 @@ const keyValue = ref('')
 const sourceMode = ref('auto')
 const showAll = ref(true)
 const loading = ref(false)
+const adviceLoading = ref(false)  // 建议数据加载状态
 const showManageModal = ref(false)
 const validKey = ref('')
 const lastUpdate = ref(null)
 const searchKeyword = ref('')
-const showDiag = ref(false)
 // 自动刷新定时器
 let refreshTimer = null
 const REFRESH_INTERVAL = 2 * 60 * 1000 // 2分钟
@@ -108,7 +82,7 @@ function resetTimer() {
 }
 
 // 组合式函数
-const { fundCodes, fundGroups, loadConfig, configDiag, error: configError } = useConfig()
+const { fundCodes, fundGroups, loadConfig } = useConfig()
 const { funds, fundNameMap, loadFunds } = useFunds()
 const { indexData, loadIndex } = useIndex()
 const { adviceData, loadAdvice } = useAdvice()
@@ -137,25 +111,34 @@ const filteredSpecialFunds = computed(() => {
   )
 })
 
-const diagConfigClass = computed(() => {
-  if (!configDiag.value.succeeded && !configDiag.value.failed) return ''
-  return configDiag.value.succeeded ? 'ok' : 'err'
-})
-
 // 方法
 async function loadData() {
   if (loading.value) return
   loading.value = true
   try {
     const codes = getEffectiveCodes()
+    if (!codes || !codes.length) {
+      loading.value = false
+      return
+    }
+    // 先加载基金数据和指数数据
     await Promise.all([
       loadFunds(codes, sourceMode.value),
       loadIndex()
     ])
-    await loadAdvice(codes)
+    // 基金数据加载完成，立即更新时间
     lastUpdate.value = new Date()
   } finally {
     loading.value = false
+  }
+
+  // 异步加载建议数据（不阻塞主流程）
+  const codes = getEffectiveCodes()
+  if (codes && codes.length) {
+    adviceLoading.value = true
+    loadAdvice(codes).finally(() => {
+      adviceLoading.value = false
+    })
   }
 }
 
@@ -257,59 +240,5 @@ onUnmounted(() => {
   .container {
     padding: 12px;
   }
-}
-
-/* 诊断面板 */
-.diag-panel {
-  position: fixed;
-  bottom: 16px;
-  right: 16px;
-  z-index: 9999;
-  background: #1e1e1e;
-  color: #d4d4d4;
-  border: 1px solid #3c3c3c;
-  border-radius: 8px;
-  padding: 12px 16px;
-  font-size: 12px;
-  min-width: 240px;
-  max-width: 320px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-}
-.diag-title {
-  font-weight: 700;
-  margin-bottom: 8px;
-  color: #e0e0e0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.diag-close {
-  background: none;
-  border: none;
-  color: #888;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 0 4px;
-}
-.diag-section { display: flex; flex-direction: column; gap: 4px; }
-.diag-row { display: flex; gap: 6px; align-items: flex-start; }
-.diag-label { color: #888; flex-shrink: 0; }
-.diag-val { color: #d4d4d4; word-break: break-all; }
-.diag-val.ok { color: #4caf50; }
-.diag-val.err { color: #f44336; }
-.diag-tip { margin-top: 8px; color: #666; font-size: 11px; }
-.diag-toggle {
-  position: fixed;
-  bottom: 16px;
-  right: 16px;
-  z-index: 9998;
-  background: #4f46e5;
-  color: white;
-  border: none;
-  border-radius: 20px;
-  padding: 6px 14px;
-  font-size: 12px;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(79,70,229,0.4);
 }
 </style>
