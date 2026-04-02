@@ -101,11 +101,12 @@ export function useFunds() {
         })
       }
 
-      // 2. fundgz 异步补齐缺失数据
+      // 2. fundgz 异步补齐缺失数据（带重试）
       if (missing.length > 0) {
         missing.forEach(code => {
-          fetchSingleFundgz(code)
-            .then(r => {
+          async function fetchWithRetry(remainRetries = 3) {
+            try {
+              const r = await fetchSingleFundgz(code)
               // 查找是否已存在这只基金
               const idx = funds.value.findIndex(f => f.FCODE === code)
               if (idx >= 0) {
@@ -120,8 +121,16 @@ export function useFunds() {
                 fundNameMap[code] = r.SHORTNAME
               }
               lastUpdate.value = new Date()
-            })
-            .catch(() => {})
+            } catch (e) {
+              // 请求失败，重试
+              if (remainRetries > 0) {
+                await new Promise(resolve => setTimeout(resolve, 150))
+                return fetchWithRetry(remainRetries - 1)
+              }
+              // 重试耗尽，不做处理
+            }
+          }
+          fetchWithRetry()
         })
       }
 
