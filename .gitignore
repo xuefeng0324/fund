@@ -1,5 +1,5 @@
-# Build output
-dist/
+# Build output (normally ignored, but kept in lyl-dev-claude for CI)
+# dist/
 
 # Python cache
 __pycache__/
@@ -20,3 +20,9 @@ artifacts/
 # OS/editor files
 .DS_Store
 Thumbs.db
+
+# 本地一次性调试脚本与截图（不纳入版本库）
+/scripts/
+/full_diag.png
+/mock_debug.png
+/mock_verify.png

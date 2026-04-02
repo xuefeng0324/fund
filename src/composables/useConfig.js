@@ -5,15 +5,16 @@
  * - 基金代码列表（fund_codes.json）
  * - 基金分组配置（fund_groups.json）
  *
- * 配置文件放在 public/config/ 目录，运行时请求加载
- * 修改配置文件后无需重新构建，刷新页面即可生效
+ * 配置在构建时直接 import 嵌入 bundle，
+ * 不依赖运行时网络请求，彻底规避 GitHub Pages 缓存问题。
  */
 
 import { ref } from 'vue'
-import { getFileContent } from '../api/github'
 import { getStorage, setStorage, STORAGE_KEYS } from '../utils/storage'
 
-const CONFIG_FETCH_TIMEOUT = 8000
+// 构建时直接 import 配置（Vite 会将 JSON 打入 bundle）
+import fundCodesData from '../../public/config/fund_codes.json'
+import fundGroupsData from '../../public/config/fund_groups.json'
 
 /**
  * 配置管理 Hook
@@ -45,10 +46,8 @@ export function useConfig() {
   /**
    * 加载配置文件
    *
-   * 从 public/config/ 目录请求配置文件
-   * 添加时间戳参数避免浏览器缓存
-   *
-   * @returns {Object|null} { fundCodes, fundGroups } 或 null（失败时）
+   * 主数据源：构建时 import 的 JSON（嵌入 JS bundle，永不依赖网络）
+   * 用户覆盖：localStorage（用户修改的配置优先）
    */
   async function loadConfig() {
     loading.value = true
@@ -58,64 +57,28 @@ export function useConfig() {
     configDiag.value.failed = null
     configDiag.value.fromCache = false
 
-    try {
-      const t = Date.now()
-      const primaryCodes = `/fund/config/fund_codes.json?t=${t}`
-      const primaryGroups = `/fund/config/fund_groups.json?t=${t}`
-      const fallbackCodes = `https://xuefeng0324.github.io/fund/config/fund_codes.json?t=${t}`
-      const fallbackGroups = `https://xuefeng0324.github.io/fund/config/fund_groups.json?t=${t}`
+    configDiag.value.tried.push('bundle')
+    const cached = getStorage(STORAGE_KEYS.USER_CONFIG)
+    const hasUserConfig = cached &&
+      Array.isArray(cached.fundCodes) &&
+      cached.fundCodes.length > 0 &&
+      cached.fundGroups
 
-      let codes = null
-      let groups = null
-
-      // Primary
-      configDiag.value.tried.push('primary')
-      try {
-        ;[codes, groups] = await Promise.all([
-          fetchJsonWithTimeout(primaryCodes),
-          fetchJsonWithTimeout(primaryGroups)
-        ])
-        configDiag.value.succeeded = 'primary'
-      } catch (e1) {
-        // Fallback
-        configDiag.value.tried.push('fallback')
-        try {
-          ;[codes, groups] = await Promise.all([
-            fetchJsonWithTimeout(fallbackCodes),
-            fetchJsonWithTimeout(fallbackGroups)
-          ])
-          configDiag.value.succeeded = 'fallback'
-        } catch (e2) {
-          // Cache
-          configDiag.value.tried.push('cache')
-          const cached = getStorage(STORAGE_KEYS.USER_CONFIG)
-          if (cached && Array.isArray(cached.fundCodes) && cached.fundCodes.length > 0 && cached.fundGroups) {
-            fundCodes.value = cached.fundCodes
-            fundGroups.value = cached.fundGroups
-            configDiag.value.fromCache = true
-            configDiag.value.succeeded = 'cache'
-            return { fundCodes: fundCodes.value, fundGroups: fundGroups.value, fromCache: true }
-          }
-          configDiag.value.failed = 'all'
-          throw new Error('配置加载失败（主路径/回退路径/本地缓存均不可用）')
-        }
-      }
-
-      fundCodes.value = Array.isArray(codes) ? codes : []
-      fundGroups.value = groups && typeof groups === 'object' ? groups : {}
-      setStorage(STORAGE_KEYS.USER_CONFIG, {
-        fundCodes: fundCodes.value,
-        fundGroups: fundGroups.value,
-        updatedAt: Date.now()
-      })
-
-      return { fundCodes: fundCodes.value, fundGroups: fundGroups.value }
-    } catch (e) {
-      error.value = e.message
-      return null
-    } finally {
-      loading.value = false
+    if (hasUserConfig) {
+      fundCodes.value = cached.fundCodes
+      fundGroups.value = cached.fundGroups
+      configDiag.value.succeeded = 'cache'
+      configDiag.value.fromCache = true
+      console.info('[PXF] 使用用户已保存的配置（localStorage）')
+    } else {
+      fundCodes.value = Array.isArray(fundCodesData) ? fundCodesData : []
+      fundGroups.value = (fundGroupsData && typeof fundGroupsData === 'object') ? fundGroupsData : {}
+      configDiag.value.succeeded = 'bundle'
+      console.info('[PXF] 使用构建时嵌入的配置数据')
     }
+
+    loading.value = false
+    return { fundCodes: fundCodes.value, fundGroups: fundGroups.value }
   }
 
   async function fetchJsonWithTimeout(url, timeout = CONFIG_FETCH_TIMEOUT) {
