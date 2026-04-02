@@ -1,5 +1,5 @@
 # Build output
-dist/
+# dist/  # 允许提交 dist 目录到 GitHub Pages
 
 # Python cache
 __pycache__/
@@ -10,9 +10,6 @@ intraday_store.json
 
 # Node modules (Playwright verification)
 node_modules/
-
-# Local runtime/cache data
-intraday_store.json
 
 # Verification artifacts
 artifacts/

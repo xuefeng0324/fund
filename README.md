@@ -6,6 +6,7 @@
 
 | 版本 | 发布日期 | 说明 |
 |------|----------|------|
+| v2.1.6 | 2026-04-02 | 代码清理：移除调试代码、Mock 数据、诊断面板 |
 | v2.1.5 | 2026-04-01 | 修复 fundmobapi 接口调用问题，该接口不支持 JSONP |
 | v2.1.4 | 2026-04-01 | 修复 GitHub Pages CORS 问题，部分接口改用 JSONP |
 | v2.1.3 | 2026-04-01 | 修复 fundgz API 频率限制问题，请求队列串行处理 |
@@ -204,10 +205,16 @@ npm run preview
 推送到 `lyl-dev-claude` 分支会自动触发 GitHub Actions 部署：
 
 ```bash
+# 构建并提交
+npm run build
 git add .
 git commit -m "update"
 git push origin lyl-dev-claude
 ```
+
+**提交规范**：
+- 提交代码时必须同步更新 README 和 changelog
+- 构建产物 `dist/` 目录一起提交
 
 **在线地址：** https://xuefeng0324.github.io/fund/
 
@@ -264,12 +271,20 @@ npm run build
 - 移除自定义请求头避免触发 CORS 预检
 - 根据接口特性选择合适的调用方式
 
+### v2.1.6 (2026-04-02)
+
+**代码清理**
+- 移除 vConsole 调试工具
+- 移除 Mock 数据降级代码
+- 移除诊断面板
+- 移除所有调试日志
+- 优化 fundgz 请求间隔为 100ms，频率限制暂停为 0.5 秒
+
 ### v2.1.3 (2026-04-01)
 
 **Bug 修复**
 - 修复 fundgz API 频率限制问题（514 错误）
 - 添加请求队列，串行处理请求避免并发过多
-- 每个请求间隔 300ms，频率限制时暂停 2 秒
 
 ### v2.1.2 (2026-04-01)
 

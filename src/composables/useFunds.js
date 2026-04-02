@@ -39,10 +39,8 @@ export function useFunds() {
    * @param {string} mode - 数据获取模式（'auto' | 'em' | 'fundgz' 等）
    */
   async function loadFunds(codes, mode = 'auto') {
-    console.log('[useFunds] loadFunds 开始, codes=', codes?.length)
     if (!codes || !codes.length) {
       funds.value = []
-      console.warn('[useFunds] codes 为空')
       return
     }
 
@@ -50,9 +48,7 @@ export function useFunds() {
     error.value = null
 
     try {
-      console.log('[useFunds] 开始 fetchFundsLive')
       funds.value = await fetchFundsLive(codes, mode)
-      console.log('[useFunds] fetchFundsLive 完成, 结果=', funds.value.length)
       // 更新名称缓存
       funds.value.forEach(f => {
         if (f.FCODE && f.SHORTNAME) {
@@ -61,7 +57,6 @@ export function useFunds() {
       })
       lastUpdate.value = new Date()
     } catch (e) {
-      console.error('[useFunds] 错误:', e)
       error.value = e.message
     } finally {
       loading.value = false

@@ -55,18 +55,14 @@ export function fetchRealtimeBatch(codes) {
 }
 
 function fetchSingleBatch(codes) {
-  console.log('[fetchSingleBatch] 开始, codes=', codes.length)
   const url =
     'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
     '?pageIndex=1&pageSize=200&plat=Android&appType=ttjj&product=EFund&Version=1' +
     '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(','))
 
-  console.log('[fetchSingleBatch] URL=', url)
-
   return fetch(url)
     .then(r => r.json())
     .then(data => {
-      console.log('[fetchSingleBatch] 返回数据, Datas=', data?.Datas?.length)
       const map = {}
       const datas = (data && data.Datas) || []
       datas.forEach(item => {
@@ -81,13 +77,9 @@ function fetchSingleBatch(codes) {
           PDATE: item.PDATE || ''
         }
       })
-      console.log('[fetchSingleBatch] 解析完成, map keys=', Object.keys(map).length)
       return map
     })
-    .catch(e => {
-      console.error('[fetchSingleBatch] 错误:', e)
-      return {}
-    })
+    .catch(() => ({}))
 }
 
 /**
@@ -103,7 +95,7 @@ const pendingRequests = new Map()
 // 请求队列和延迟控制
 const requestQueue = []
 let isProcessingQueue = false
-const REQUEST_DELAY = 300 // 每个请求间隔 300ms，避免频率限制
+const REQUEST_DELAY = 100 // 每个请求间隔 100ms，避免频率限制
 
 // 全局回调处理所有响应
 window.jsonpgz = (data) => {
@@ -156,7 +148,7 @@ async function processQueue() {
       if (script.parentNode) document.head.removeChild(script)
       // 频率限制时，暂停一段时间
       if (requestQueue.length > 0) {
-        setTimeout(() => processQueue(), 2000)
+        setTimeout(() => processQueue(), 500)
         isProcessingQueue = false
         return
       }
@@ -183,7 +175,6 @@ export function fetchSingleFundgz(code) {
 
 /**
  * 自动获取基金实时估值（批量 + 单只补齐）
- * 当外部 API 全部失败时，自动降级到本地 mock 数据
  */
 export function fetchRealtimeAuto(codes, mode = 'auto') {
   return fetchRealtimeBatch(codes).then(batchMap => {
@@ -201,23 +192,7 @@ export function fetchRealtimeAuto(codes, mode = 'auto') {
           .then(r => { batchMap[c] = r })
           .catch(() => {})
       )
-    ).then(async () => {
-      // 检查成功率：若批量+单只补齐后有效数据仍少于 20%，降级到 mock
-      const validCount = codes.filter(c => {
-        const info = batchMap[c]
-        return info && info.GSZ != null
-      }).length
-      const successRate = validCount / codes.length
-
-      if (successRate < 0.2 && codes.length > 0) {
-        // 动态导入 mock 数据模块（避免影响首屏加载）
-        const { generateMockData } = await import('./mockData.js')
-        const mockResults = generateMockData(codes)
-        mockResults.forEach(m => { batchMap[m.FCODE] = m })
-        console.warn(`[funds] 外部API有效率仅${(successRate * 100).toFixed(0)}%，自动切换到Mock数据`)
-      }
-      return batchMap
-    })
+    ).then(() => batchMap)
   })
 }
 
@@ -225,32 +200,24 @@ export function fetchRealtimeAuto(codes, mode = 'auto') {
  * 获取基金基本信息（名称等）
  */
 export function fetchFundBasicInfo(codes) {
-  console.log('[fetchFundBasicInfo] 开始, codes=', codes?.length)
   if (!codes || !codes.length) return Promise.resolve({})
 
   const url = 'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
     '?pageIndex=1&pageSize=' + codes.length + '&plat=Android&appType=ttjj&product=EFund&Version=1' +
     '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(','))
 
-  console.log('[fetchFundBasicInfo] URL=', url)
-
   return fetch(url)
     .then(r => r.json())
     .then(data => {
-      console.log('[fetchFundBasicInfo] 返回数据, Datas=', data?.Datas?.length)
       const map = {}
       const datas = (data && data.Datas) || []
       datas.forEach(item => {
         if (!item || !item.FCODE) return
         map[item.FCODE] = item.SHORTNAME || ''
       })
-      console.log('[fetchFundBasicInfo] 完成, map keys=', Object.keys(map).length)
       return map
     })
-    .catch(e => {
-      console.error('[fetchFundBasicInfo] 错误:', e)
-      return {}
-    })
+    .catch(() => ({}))
 }
 
 export function getLastTradingChange(code) {
@@ -274,18 +241,10 @@ export function getLastTradingChange(code) {
  * 获取基金数据列表（主入口函数）
  */
 export async function fetchFundsLive(fundCodes, mode = 'auto') {
-  console.log('[fetchFundsLive] 开始, codes=', fundCodes?.length)
   // 获取基本信息（网络失败时返回空对象，不阻塞主流程）
-  console.log('[fetchFundsLive] 开始 fetchFundBasicInfo')
-  const basicInfo = await fetchFundBasicInfo(fundCodes).catch(e => {
-    console.warn('[fetchFundsLive] fetchFundBasicInfo 失败:', e)
-    return {}
-  })
-  console.log('[fetchFundsLive] fetchFundBasicInfo 完成, basicInfo keys=', Object.keys(basicInfo).length)
+  const basicInfo = await fetchFundBasicInfo(fundCodes).catch(() => ({}))
 
-  console.log('[fetchFundsLive] 开始 fetchRealtimeAuto')
   const batchMap = await fetchRealtimeAuto(fundCodes, mode)
-  console.log('[fetchFundsLive] fetchRealtimeAuto 完成, batchMap keys=', Object.keys(batchMap).length)
   const results = []
   const noEstimateCodes = []
   const today = todayStr()
