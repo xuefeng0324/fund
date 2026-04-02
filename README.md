@@ -268,7 +268,7 @@ npm run build
 
 ## 更新日志
 
-详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期记录。
+详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期-版本-变更信息记录。
 
 ### v2.1.14 (2026-04-02)
 
