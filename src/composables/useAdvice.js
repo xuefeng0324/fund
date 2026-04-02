@@ -226,6 +226,8 @@ export function useAdvice() {
   /**
    * 批量加载建议
    *
+   * 使用请求间隔避免一次性请求过多
+   *
    * @param {string[]} codes - 基金代码数组
    */
   async function loadAdvice(codes) {
@@ -233,14 +235,20 @@ export function useAdvice() {
 
     loading.value = true
 
-    try {
-      const promises = codes.map(async code => {
-        const advice = await getTradeAdvice(code)
-        return [code, advice]
-      })
+    const REQUEST_DELAY = 100 // 每个请求间隔 100ms
 
-      const results = await Promise.all(promises)
-      adviceData.value = Object.fromEntries(results)
+    try {
+      // 串行请求，添加间隔
+      for (let i = 0; i < codes.length; i++) {
+        const code = codes[i]
+        const advice = await getTradeAdvice(code)
+        adviceData.value[code] = advice
+
+        // 最后一个请求不需要等待
+        if (i < codes.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, REQUEST_DELAY))
+        }
+      }
     } finally {
       loading.value = false
     }
