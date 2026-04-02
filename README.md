@@ -52,7 +52,6 @@ fund/
 │   ├── composables/             # 组合式函数
 │   │   ├── useFunds.js          # 基金数据逻辑
 │   │   ├── useIndex.js          # 指数数据逻辑
-│   │   ├── useKDJ.js            # KDJ 计算逻辑
 │   │   ├── useAdvice.js         # 买卖建议逻辑
 │   │   ├── useAuth.js           # 密钥验证逻辑
 │   │   └── useConfig.js         # 配置加载逻辑
