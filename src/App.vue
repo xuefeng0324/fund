@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <div class="sticky-header">
-      <Header :last-update="lastUpdate" />
+      <Header />
       <IndexStrip :data="indexData" />
     </div>
     <div class="container">

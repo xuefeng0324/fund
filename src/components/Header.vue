@@ -12,32 +12,40 @@
       </div>
     </div>
     <div class="header-right">
-      <el-menu-item index="time">
-        <el-icon><Clock /></el-icon>
-        <span v-if="lastUpdate">{{ formatTime(lastUpdate) }}</span>
-        <span v-else>等待更新...</span>
-      </el-menu-item>
+      <span class="current-time">{{ formatFullTime(currentTime) }}</span>
     </div>
   </el-menu>
 </template>
 
 <script setup>
-import { TrendCharts, Clock } from '@element-plus/icons-vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { TrendCharts } from '@element-plus/icons-vue'
 
-defineProps({
-  lastUpdate: {
-    type: Date,
-    default: null
-  }
-})
-
-function formatTime(date) {
+function formatFullTime(date) {
   if (!date) return ''
+  const y = date.getFullYear()
+  const M = (date.getMonth() + 1).toString().padStart(2, '0')
+  const d = date.getDate().toString().padStart(2, '0')
   const h = date.getHours().toString().padStart(2, '0')
   const m = date.getMinutes().toString().padStart(2, '0')
   const s = date.getSeconds().toString().padStart(2, '0')
-  return `${h}:${m}:${s}`
+  return `${y}-${M}-${d} ${h}:${m}:${s}`
 }
+
+const currentTime = ref(new Date())
+let timer = null
+
+onMounted(() => {
+  timer = setInterval(() => {
+    currentTime.value = new Date()
+  }, 1000)
+})
+
+onUnmounted(() => {
+  if (timer) {
+    clearInterval(timer)
+  }
+})
 </script>
 
 <style scoped>
@@ -83,6 +91,13 @@ function formatTime(date) {
   align-items: center;
 }
 
+.current-time {
+  font-size: 13px;
+  color: #666;
+  font-weight: 600;
+  margin-right: 8px;
+}
+
 .header-right :deep(.el-menu-item) {
   height: 60px;
   line-height: 60px;
@@ -105,6 +120,14 @@ function formatTime(date) {
 
   .title {
     font-size: 16px;
+  }
+
+  .current-time {
+    font-size: 12px;
+  }
+
+  .header-right :deep(.el-menu-item) {
+    display: none;
   }
 }
 

@@ -9,8 +9,11 @@
       <div class="index-card-main" :class="priceClass(item)">
         {{ formatPrice(item.last) }}
       </div>
-      <div class="index-card-sub" :class="priceClass(item)">
-        {{ formatChange(item) }} {{ formatPct(item) }}
+      <div class="index-card-chg" :class="priceClass(item)">
+        {{ formatChange(item) }}
+      </div>
+      <div class="index-card-pct" :class="priceClass(item)">
+        {{ formatPct(item) }}
       </div>
     </div>
     <div v-if="!data || !data.length" class="muted">
@@ -58,6 +61,8 @@ function priceClass(item) {
   background: #fff;
   overflow-x: auto;
   border-bottom: 1px solid #e8e8e8;
+  min-width: 100%;
+  box-sizing: border-box;
 }
 
 .index-card {
@@ -98,6 +103,19 @@ function priceClass(item) {
   font-weight: 600;
 }
 
+.index-card-chg {
+  font-size: 13px;
+  margin-top: 2px;
+  color: #374151;
+}
+
+.index-card-pct {
+  font-size: 13px;
+  margin-top: 2px;
+  color: #374151;
+  font-weight: 600;
+}
+
 .positive {
   color: #dc2626;
 }
@@ -117,53 +135,47 @@ function priceClass(item) {
 
 @media (max-width: 768px) {
   .index-strip {
-    padding: 12px 16px;
-    gap: 8px;
-  }
-
-  .index-card {
-    min-width: 100px;
-    padding: 10px 14px;
-  }
-
-  .index-card-title {
-    font-size: 11px;
-    margin-bottom: 4px;
-  }
-
-  .index-card-main {
-    font-size: 16px;
-  }
-
-  .index-card-sub {
-    font-size: 11px;
-    margin-top: 2px;
-  }
-}
-
-@media (max-width: 480px) {
-  .index-strip {
     padding: 8px 12px;
     gap: 6px;
+    flex-wrap: wrap;
+    overflow-x: visible;
+    box-sizing: border-box;
   }
 
   .index-card {
-    min-width: 80px;
-    padding: 8px 10px;
+    flex: 0 0 calc(25% - 6px);
+    max-width: calc(25% - 6px);
+    min-width: 0;
+    padding: 6px 4px;
+    box-sizing: border-box;
   }
 
   .index-card-title {
-    font-size: 10px;
-    margin-bottom: 4px;
+    font-size: 11px;
+    margin-bottom: 1px;
+    text-align: center;
+    font-weight: 700;
   }
 
   .index-card-main {
     font-size: 14px;
+    text-align: center;
+    margin-bottom: 1px;
+    font-weight: 700;
   }
 
-  .index-card-sub {
-    font-size: 10px;
-    margin-top: 2px;
+  .index-card-chg {
+    font-size: 11px;
+    text-align: center;
+    margin-top: 0;
+  }
+
+  .index-card-pct {
+    font-size: 11px;
+    text-align: center;
+    margin-top: 0;
+    font-weight: 700;
   }
 }
+
 </style>
