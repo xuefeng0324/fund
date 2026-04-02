@@ -284,12 +284,12 @@ export async function fetchNoEstimateFunds(noEstimateCodes, basicInfo = {}) {
 }
 
 /**
- * 获取 pingzhongdata 净值趋势数据（script 标签加载）
+ * 单次获取 pingzhongdata 净值趋势数据
  *
  * 注意：pingzhongdata 接口不支持 CORS，需要用 script 标签加载
  * 脚本会设置全局变量 Data_netWorthTrend
  */
-export async function fetchPingzhongdata(code) {
+function fetchPingzhongdataOnce(code) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       cleanup()
@@ -326,7 +326,36 @@ export async function fetchPingzhongdata(code) {
     }
 
     document.head.appendChild(script)
-  }).catch(e => {
-    return []
   })
+}
+
+/**
+ * 获取 pingzhongdata 净值趋势数据（带重试策略）
+ *
+ * @param {string} code - 基金代码
+ * @param {number} retries - 重试次数（默认3次）
+ * @param {number} delay - 重试间隔（默认100ms）
+ * @returns {Promise<{trend: Array, name: string}>}
+ */
+export async function fetchPingzhongdata(code, retries = 3, delay = 100) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const result = await fetchPingzhongdataOnce(code)
+      // 如果获取到有效数据，返回
+      if (result.trend && result.trend.length >= 10) {
+        return result
+      }
+      // 数据无效，等待后重试
+      if (i < retries - 1) {
+        await new Promise(r => setTimeout(r, delay))
+      }
+    } catch (e) {
+      // 请求失败，等待后重试
+      if (i < retries - 1) {
+        await new Promise(r => setTimeout(r, delay))
+      }
+    }
+  }
+  // 所有重试都失败，返回空数据
+  return { trend: [], name: '' }
 }

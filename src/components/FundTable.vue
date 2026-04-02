@@ -825,7 +825,6 @@ const sortedFunds = computed(() => {
 
 .loading-text {
   color: #9ca3af;
-  font-style: italic;
 }
 
 @media (max-width: 768px) {

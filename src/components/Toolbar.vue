@@ -21,15 +21,15 @@
 
       <el-button
         type="primary"
-        :loading="loading"
-        :disabled="loading"
+        :loading="isLoading"
+        :disabled="isLoading"
         @click="$emit('refresh')"
       >
-        {{ loading ? '更新中' : '更新' }}
+        {{ isLoading ? '更新中' : '更新' }}
       </el-button>
 
       <!-- PC端更新时间 -->
-      <span v-if="lastUpdate && !props.loading" class="update-time pc-update-time">{{ formatTime(lastUpdate) }}</span>
+      <span v-if="lastUpdate && !isLoading" class="update-time pc-update-time">{{ formatTime(lastUpdate) }}</span>
     </div>
 
     <div class="toolbar-row">
@@ -93,7 +93,8 @@ const props = defineProps({
   validKey: { type: String, default: '' },
   showAll: { type: Boolean, default: true },
   lastUpdate: { type: Date, default: null },
-  loading: { type: Boolean, default: false }
+  loading: { type: Boolean, default: false },
+  adviceLoading: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:keyValue', 'update:sourceMode', 'update:showAll', 'refresh', 'manage', 'search'])
@@ -109,6 +110,9 @@ const showAll = computed({
 })
 
 const showManageBtn = computed(() => !!props.validKey)
+
+// 按钮是否处于加载状态（基金数据加载中或建议计算中）
+const isLoading = computed(() => props.loading || props.adviceLoading)
 
 watch(() => props.sourceMode, (val) => {
   localSourceMode.value = val

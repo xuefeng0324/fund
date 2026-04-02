@@ -12,6 +12,7 @@
         :valid-key="validKey"
         :last-update="lastUpdate"
         :loading="loading"
+        :advice-loading="adviceLoading"
         @refresh="handleRefresh"
         @manage="showManageModal = true"
         @search="searchKeyword = $event"
