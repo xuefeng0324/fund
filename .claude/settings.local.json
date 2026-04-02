@@ -20,7 +20,9 @@
       "Bash(gh auth:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "WebSearch",
+      "WebFetch(domain:animate.style)"
     ]
   }
 }

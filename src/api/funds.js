@@ -175,25 +175,17 @@ export function fetchSingleFundgz(code) {
 
 /**
  * 自动获取基金实时估值（批量 + 单只补齐）
+ *
+ * 返回批量结果，缺失基金的 fundgz 请求列表
  */
-export function fetchRealtimeAuto(codes, mode = 'auto') {
-  return fetchRealtimeBatch(codes).then(batchMap => {
-    const missing = []
-    codes.forEach(c => {
-      const info = batchMap[c]
-      if (!info || info.GSZ == null) missing.push(c)
-    })
-    if (!missing.length) return batchMap
-
-    // 并行请求缺失的基金
-    return Promise.all(
-      missing.map(c =>
-        fetchSingleFundgz(c)
-          .then(r => { batchMap[c] = r })
-          .catch(() => {})
-      )
-    ).then(() => batchMap)
+export async function fetchRealtimeAuto(codes, mode = 'auto') {
+  const batchMap = await fetchRealtimeBatch(codes)
+  const missing = []
+  codes.forEach(c => {
+    const info = batchMap[c]
+    if (!info || info.GSZ == null) missing.push(c)
   })
+  return { batchMap, missing }
 }
 
 /**
@@ -238,13 +230,14 @@ export function getLastTradingChange(code) {
 }
 
 /**
- * 获取基金数据列表（主入口函数）
+ * 构建基金结果数组
+ *
+ * @param {string[]} fundCodes 基金代码数组
+ * @param {Object} batchMap 批量结果映射
+ * @param {Object} basicInfo 基金名称映射
+ * @returns {Object} { results, noEstimateCodes }
  */
-export async function fetchFundsLive(fundCodes, mode = 'auto') {
-  // 获取基本信息（网络失败时返回空对象，不阻塞主流程）
-  const basicInfo = await fetchFundBasicInfo(fundCodes).catch(() => ({}))
-
-  const batchMap = await fetchRealtimeAuto(fundCodes, mode)
+export function buildResults(fundCodes, batchMap, basicInfo = {}) {
   const results = []
   const noEstimateCodes = []
   const today = todayStr()
@@ -257,22 +250,25 @@ export async function fetchFundsLive(fundCodes, mode = 'auto') {
         info.GSZ = info.DWJZ
         info.GZTIME = pdate
       }
-      // 确保有名称
-      if (!info.SHORTNAME && basicInfo[code]) {
-        info.SHORTNAME = basicInfo[code]
-      }
       results.push(info)
     } else {
       noEstimateCodes.push({ code, info: info || {} })
     }
   })
+  return { results, noEstimateCodes }
+}
 
-  if (!noEstimateCodes.length) return results
-
-  // 并行获取无估值基金的上一交易日涨跌
+/**
+ * 获取无估值基金的上一交易日涨跌数据
+ *
+ * @param {Array} noEstimateCodes 无估值基金列表 [{ code, info }]
+ * @param {Object} basicInfo 基金名称映射
+ * @returns {Promise<Array>} 补充的基金数据数组
+ */
+export async function fetchNoEstimateFunds(noEstimateCodes, basicInfo = {}) {
+  const results = []
   const promises = noEstimateCodes.map(async item => {
     const lcd = await getLastTradingChange(item.code)
-    // 优先使用 lcd 返回的名称
     const shortName = lcd.name || basicInfo[item.code] || item.info.SHORTNAME || ''
     results.push({
       FCODE: item.code,

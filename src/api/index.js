@@ -50,18 +50,23 @@ export async function fetchIndexLive() {
       '&fields=f2,f3,f4,f12,f14' +
       '&cb=' + callback
 
+    let resolved = false
+    let script = null
+
     // 超时处理
     const timer = setTimeout(() => {
-      delete window[callback]
-      if (script.parentNode) document.head.removeChild(script)
+      if (resolved) return
+      resolved = true
+      try { delete window[callback] } catch (e) {}
+      if (script && script.parentNode) document.head.removeChild(script)
       reject(new Error('timeout'))
     }, 10000)
 
     // JSONP 回调函数
     window[callback] = (obj) => {
+      if (resolved) return
+      resolved = true
       clearTimeout(timer)
-      delete window[callback]
-      if (script.parentNode) document.head.removeChild(script)
 
       const out = []
       const datas = ((obj && obj.data) || {}).diff || []
@@ -81,13 +86,22 @@ export async function fetchIndexLive() {
     }
 
     // 创建 script 标签发起 JSONP 请求
-    const script = document.createElement('script')
+    script = document.createElement('script')
     script.src = url
     script.onerror = () => {
+      if (resolved) return
+      resolved = true
       clearTimeout(timer)
-      delete window[callback]
+      try { delete window[callback] } catch (e) {}
       if (script.parentNode) document.head.removeChild(script)
       reject(new Error('script load error'))
+    }
+    script.onload = () => {
+      // script 加载完成后再清理回调函数
+      setTimeout(() => {
+        try { delete window[callback] } catch (e) {}
+      }, 100)
+      if (script.parentNode) document.head.removeChild(script)
     }
     document.head.appendChild(script)
   })
