@@ -235,7 +235,7 @@ export function useAdvice() {
 
     loading.value = true
 
-    const REQUEST_DELAY = 100 // 每个请求间隔 100ms
+    const REQUEST_DELAY = 150 // 每个请求间隔 150ms
 
     try {
       // 串行请求，添加间隔

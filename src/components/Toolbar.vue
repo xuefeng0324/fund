@@ -40,6 +40,7 @@
           class="key-input"
           clearable
           @change="onKeyChange"
+          @clear="onKeyClear"
           @keyup.enter="onKeyChange"
         >
           <template #prefix>
@@ -58,18 +59,18 @@
 
       <div class="view-switch">
         <span
-          :class="['switch-label', { active: !showAll, disabled: props.loading }]"
+          :class="['switch-label', { active: !showAll, disabled: isLoading || !validKey }]"
           @click="handleSwitchClick(false)"
         >
           看自己
         </span>
         <el-switch
           v-model="showAll"
-          :disabled="props.loading"
+          :disabled="isLoading || !validKey"
           @change="handleSwitchChange"
         />
         <span
-          :class="['switch-label', { active: showAll, disabled: props.loading }]"
+          :class="['switch-label', { active: showAll, disabled: isLoading || !validKey }]"
           @click="handleSwitchClick(true)"
         >
           看全部
@@ -77,7 +78,7 @@
       </div>
     </div>
 
-    <div v-if="lastUpdate && !props.loading" class="toolbar-row">
+    <div v-if="lastUpdate && !isLoading" class="toolbar-row">
       <span class="update-time">{{ formatTime(lastUpdate) }}</span>
     </div>
   </div>
@@ -132,8 +133,8 @@ watch(() => props.keyValue, (val) => {
 
 // switch 变化时触发
 function handleSwitchChange(val) {
-  if (props.loading) {
-    // 如果正在 loading，恢复 switch 状态
+  if (isLoading.value || !props.validKey) {
+    // 如果正在 loading 或没有有效密钥，恢复 switch 状态
     showAll.value = !val
     return
   }
@@ -164,7 +165,7 @@ function handleSwitchChange(val) {
 
 // 点击文字切换
 function handleSwitchClick(val) {
-  if (props.loading) return
+  if (isLoading.value || !props.validKey) return
   // 如果值没变，不做处理
   if (showAll.value === val) return
   handleSwitchChange(val)
@@ -177,6 +178,11 @@ function onSearch() {
 function onKeyChange() {
   const val = localKey.value.trim()
   emit('update:keyValue', val)
+}
+
+function onKeyClear() {
+  // 清空密钥，由父组件 watch 处理切换到"看全部"并刷新
+  emit('update:keyValue', '')
 }
 
 function formatTime(date) {
@@ -276,6 +282,13 @@ function formatTime(date) {
   border-radius: 10px;
 }
 
+/* PC端隐藏第三行更新时间 */
+@media (min-width: 769px) {
+  .toolbar-row:last-child .update-time:not(.pc-update-time) {
+    display: none;
+  }
+}
+
 @media (max-width: 768px) {
   .toolbar {
     gap: 10px;
@@ -303,11 +316,8 @@ function formatTime(date) {
     display: none;
   }
 
-  .toolbar-row:not(:only-child) .update-time {
-    display: none;
-  }
-
-  .toolbar-row:only-child .update-time {
+  /* 移动端第三行更新时间样式 */
+  .toolbar-row:last-child .update-time:not(.pc-update-time) {
     display: block;
     width: 100%;
     font-size: 14px;

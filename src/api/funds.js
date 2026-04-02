@@ -95,7 +95,7 @@ const pendingRequests = new Map()
 // 请求队列和延迟控制
 const requestQueue = []
 let isProcessingQueue = false
-const REQUEST_DELAY = 100 // 每个请求间隔 100ms，避免频率限制
+const REQUEST_DELAY = 150 // 每个请求间隔 150ms，避免频率限制
 
 // 全局回调处理所有响应
 window.jsonpgz = (data) => {
@@ -297,10 +297,8 @@ function fetchPingzhongdataOnce(code) {
     }, TIMEOUT_MS)
 
     const script = document.createElement('script')
-    // 开发环境使用代理
-    const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV
-    const baseUrl = isDev ? '/api/eastmoney-fund' : 'https://fund.eastmoney.com'
-    script.src = `${baseUrl}/pingzhongdata/${encodeURIComponent(code)}.js?v=${Date.now()}`
+    // 直接请求外部 API（与 GitHub Pages 一致）
+    script.src = `https://fund.eastmoney.com/pingzhongdata/${encodeURIComponent(code)}.js?v=${Date.now()}`
 
     function cleanup() {
       // 清理全局变量

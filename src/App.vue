@@ -161,8 +161,17 @@ function getEffectiveCodes() {
   return fundCodes.value
 }
 
-function onFundSaved() {
-  loadConfig().then(loadData)
+function onFundSaved(data) {
+  if (data && data.fundGroups && data.fundCodes) {
+    // 直接使用保存后返回的数据更新本地状态
+    fundGroups.value = data.fundGroups
+    fundCodes.value = data.fundCodes
+    // 刷新数据
+    loadData()
+  } else {
+    // 兼容旧的调用方式
+    loadConfig().then(loadData)
+  }
 }
 
 // 监听密钥变化
@@ -178,8 +187,13 @@ watch(keyValue, async (newKey, oldKey) => {
       localStorage.setItem('fundMonitorValidKey', newKey)
       loadData()
     }
+  } else {
+    // 密钥清空时，清除有效密钥并显示全部
+    validKey.value = ''
+    showAll.value = true
+    localStorage.removeItem('fundMonitorValidKey')
+    loadData()
   }
-  // 如果 keyValue 为空，由 showAll 状态控制是否显示全部
 })
 
 // 初始化

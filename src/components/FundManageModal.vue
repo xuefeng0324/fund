@@ -154,7 +154,13 @@ async function save() {
     }
 
     ElMessage.success('基金列表已保存到 GitHub')
-    emit('saved')
+
+    // 直接传递更新后的数据给父组件，避免等待 GitHub Pages 部署
+    emit('saved', {
+      fundGroups: fundGroups.value,
+      fundCodes: uniqueCodes,
+      key: props.keyValue
+    })
     close()
   } catch (e) {
     ElMessage.error('保存失败: ' + e.message)
@@ -296,7 +302,8 @@ watch(() => props.keyValue, loadAllConfig)
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 120px;
+    flex: 1;
+    max-width: 180px;
   }
 }
 </style>

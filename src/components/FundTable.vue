@@ -6,19 +6,19 @@
       <div v-if="isMobile" class="header-actions">
         <!-- 排序开关 -->
         <div class="sort-switch-wrap">
-          <span :class="['sort-label-text', { active: !sortAsc, disabled: props.loading }]">降序</span>
+          <span :class="['sort-label-text', { active: !sortAsc, disabled: isLoading }]">降序</span>
           <el-switch
             v-model="sortAsc"
             class="sort-switch"
-            :disabled="props.loading"
+            :disabled="isLoading"
             @change="sortKey = 'GSZZL'"
           />
-          <span :class="['sort-label-text', { active: sortAsc, disabled: props.loading }]">升序</span>
+          <span :class="['sort-label-text', { active: sortAsc, disabled: isLoading }]">升序</span>
         </div>
         <!-- 展开/收起按钮 -->
         <span
-          :class="['expand-btn', { disabled: props.loading }]"
-          @click="!props.loading && (allExpanded ? collapseAll() : expandAll())"
+          :class="['expand-btn', { disabled: isLoading }]"
+          @click="!isLoading && (allExpanded ? collapseAll() : expandAll())"
         >
           {{ allExpanded ? '收起全部' : '展开全部' }}
         </span>
@@ -212,6 +212,9 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
   adviceLoading: { type: Boolean, default: false }
 })
+
+// 组合 loading 状态（基金数据加载中或建议计算中）
+const isLoading = computed(() => props.loading || props.adviceLoading)
 
 // 获取基金名称
 function getFundName(fund) {

@@ -6,6 +6,7 @@
 
 | 版本 | 发布日期 | 说明 |
 |------|----------|------|
+| v2.1.11 | 2026-04-02 | 加载状态优化、密钥清空修复、无密钥禁用看自己、请求间隔150ms |
 | v2.1.10 | 2026-04-02 | pingzhongdata 重试策略：请求失败时重试3次，间隔100ms |
 | v2.1.9 | 2026-04-02 | 请求间隔优化：历史估值数据添加 100ms 请求间隔 |
 | v2.1.8 | 2026-04-02 | 基金估值即时显示：批量结果先展示，fundgz 结果异步补充 |
@@ -266,29 +267,20 @@ npm run build
 
 详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期记录。
 
-### v2.1.5 (2026-04-01)
+### v2.1.11 (2026-04-02)
 
-**Bug 修复**
-- 修复 `fundmobapi.eastmoney.com` 接口调用问题
-- 该接口不支持 JSONP，返回纯 JSON 格式，改回 fetch 方式
-- 添加 vConsole 调试工具便于生产环境排查问题
+**UI 优化**
+- 加载状态优化：更新中禁用看自己/看全部、排序、展开全部
+- 密钥清空后自动切换看全部并刷新数据
+- 无密钥时禁用看自己/看全部开关
+- 移动端第三行更新时间显示修复
+- 移动端管理基金列表名称宽度调整为 180px
 
-**问题原因**
-- `fundmobapi.eastmoney.com` 接口支持 CORS，可直接使用 fetch
-- 之前误以为需要 JSONP，导致回调无法触发，请求卡住
-- `push2.eastmoney.com` 和 `fundgz.1234567.com.cn` 支持 JSONP
+**配置刷新**
+- 保存基金后立即生效，无需等待 GitHub Pages 部署
 
-### v2.1.4 (2026-04-01)
-
-**Bug 修复**
-- 修复 GitHub Pages CORS 跨域问题
-- `push2.eastmoney.com` 改用 JSONP（参数 `cb`）
-- `fundgz.1234567.com.cn` 使用 JSONP
-- 删除无用的 `fetchJSON` 函数
-
-**技术变更**
-- 移除自定义请求头避免触发 CORS 预检
-- 根据接口特性选择合适的调用方式
+**请求优化**
+- fundgz 和 pingzhongdata 请求间隔调整为 150ms
 
 ### v2.1.10 (2026-04-02)
 
@@ -341,6 +333,30 @@ npm run build
 - 移除诊断面板
 - 移除所有调试日志
 - 优化 fundgz 请求间隔为 100ms，频率限制暂停为 0.5 秒
+
+### v2.1.5 (2026-04-01)
+
+**Bug 修复**
+- 修复 `fundmobapi.eastmoney.com` 接口调用问题
+- 该接口不支持 JSONP，返回纯 JSON 格式，改回 fetch 方式
+- 添加 vConsole 调试工具便于生产环境排查问题
+
+**问题原因**
+- `fundmobapi.eastmoney.com` 接口支持 CORS，可直接使用 fetch
+- 之前误以为需要 JSONP，导致回调无法触发，请求卡住
+- `push2.eastmoney.com` 和 `fundgz.1234567.com.cn` 支持 JSONP
+
+### v2.1.4 (2026-04-01)
+
+**Bug 修复**
+- 修复 GitHub Pages CORS 跨域问题
+- `push2.eastmoney.com` 改用 JSONP（参数 `cb`）
+- `fundgz.1234567.com.cn` 使用 JSONP
+- 删除无用的 `fetchJSON` 函数
+
+**技术变更**
+- 移除自定义请求头避免触发 CORS 预检
+- 根据接口特性选择合适的调用方式
 
 ### v2.1.3 (2026-04-01)
 
