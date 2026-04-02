@@ -13,12 +13,6 @@
         </template>
       </el-input>
 
-      <el-select v-model="localSourceMode" class="source-select" placeholder="数据源">
-        <el-option label="自动" value="auto" />
-        <el-option label="fundgz" value="fundgz" />
-        <el-option label="东财" value="em" />
-      </el-select>
-
       <el-button
         type="primary"
         :loading="isLoading"
@@ -90,7 +84,6 @@ import { Search, Refresh, Setting, Key } from '@element-plus/icons-vue'
 
 const props = defineProps({
   keyValue: { type: String, default: '' },
-  sourceMode: { type: String, default: 'auto' },
   validKey: { type: String, default: '' },
   showAll: { type: Boolean, default: true },
   lastUpdate: { type: Date, default: null },
@@ -98,9 +91,8 @@ const props = defineProps({
   adviceLoading: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['update:keyValue', 'update:sourceMode', 'update:showAll', 'refresh', 'manage', 'search'])
+const emit = defineEmits(['update:keyValue', 'update:showAll', 'refresh', 'manage', 'search'])
 
-const localSourceMode = ref(props.sourceMode)
 const localKeyword = ref('')
 const localKey = ref(props.keyValue)
 
@@ -114,14 +106,6 @@ const showManageBtn = computed(() => !!props.validKey)
 
 // 按钮是否处于加载状态（基金数据加载中或建议计算中）
 const isLoading = computed(() => props.loading || props.adviceLoading)
-
-watch(() => props.sourceMode, (val) => {
-  localSourceMode.value = val
-})
-
-watch(localSourceMode, (val) => {
-  emit('update:sourceMode', val)
-})
 
 // 标记是否正在切换视图模式（避免 watch 清除密钥）
 let isSwitchingView = false
@@ -215,10 +199,6 @@ function formatTime(date) {
   width: 180px;
 }
 
-.source-select {
-  width: 110px;
-}
-
 .key-input-wrapper {
   width: 140px;
 }
@@ -303,10 +283,6 @@ function formatTime(date) {
     width: 140px;
   }
 
-  .source-select {
-    width: 90px;
-  }
-
   .key-input-wrapper {
     width: 100px;
   }
@@ -338,7 +314,6 @@ function formatTime(date) {
   }
 
   .search-input,
-  .source-select,
   .key-input-wrapper {
     flex: 1;
     min-width: 80px;

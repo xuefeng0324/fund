@@ -7,7 +7,6 @@
     <div class="container">
       <Toolbar
         v-model:key-value="keyValue"
-        v-model:source-mode="sourceMode"
         v-model:show-all="showAll"
         :valid-key="validKey"
         :last-update="lastUpdate"
@@ -60,7 +59,6 @@ import { useAuth } from './composables/useAuth'
 
 // 状态
 const keyValue = ref('')
-const sourceMode = ref('auto')
 const showAll = ref(true)
 const loading = ref(false)
 const adviceLoading = ref(false)  // 建议数据加载状态
@@ -124,7 +122,7 @@ async function loadData() {
     }
     // 先加载基金数据和指数数据
     await Promise.all([
-      loadFunds(codes, sourceMode.value),
+      loadFunds(codes),
       loadIndex()
     ])
     // 基金数据加载完成，立即更新时间
