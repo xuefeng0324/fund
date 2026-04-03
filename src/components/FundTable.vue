@@ -218,7 +218,12 @@ const isLoading = computed(() => props.loading || props.adviceLoading)
 
 // 获取基金名称
 function getFundName(fund) {
-  return fund.SHORTNAME || fund.FCODE
+  const baseName = fund.SHORTNAME || fund.FCODE
+  // 如果净值已更新，添加 [已更新] 标签
+  if (fund.isNavUpdated) {
+    return `${baseName}[已更新]`
+  }
+  return baseName
 }
 
 const sortKey = ref('GSZZL')

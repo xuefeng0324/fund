@@ -30,6 +30,77 @@ function todayStr() {
   return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day
 }
 
+/**
+ * 获取昨天的日期字符串
+ */
+function yesterdayStr() {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  const m = d.getMonth() + 1
+  const day = d.getDate()
+  return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day
+}
+
+/**
+ * 从 GZTIME 提取日期
+ * @param {string} gztime - 如 "2026-04-03 15:00" 或 "2026-04-03"
+ * @returns {string} - 如 "2026-04-03"
+ */
+function extractDateFromGztime(gztime) {
+  if (!gztime) return ''
+  const match = gztime.match(/(\d{4}-\d{2}-\d{2})/)
+  return match ? match[1] : ''
+}
+
+/**
+ * 判断是否为 T+2 基金（QDII 或香港互认基金）
+ *
+ * T+2 基金类型：
+ * 1. QDII 基金：名称包含 (QDII)
+ * 2. 香港互认基金：代码以 968 开头
+ *
+ * @param {string} code - 基金代码
+ * @param {string} shortName - 基金名称
+ * @returns {boolean}
+ */
+export function isT2Fund(code, shortName) {
+  // 1. QDII 基金：名称包含 (QDII)
+  if (shortName && shortName.toUpperCase().includes('QDII')) {
+    return true
+  }
+  // 2. 香港互认基金：代码以 968 开头
+  if (code && code.startsWith('968')) {
+    return true
+  }
+  return false
+}
+
+/**
+ * 判断基金净值是否已更新
+ *
+ * T+1 基金：gztime == today → 已更新
+ * T+2 基金：gztime == yesterday → 已更新
+ *
+ * @param {string} gztime - 估值时间
+ * @param {boolean} isT2 - 是否为 T+2 基金
+ * @returns {boolean}
+ */
+export function isNavUpdated(gztime, isT2 = false) {
+  const dateStr = extractDateFromGztime(gztime)
+  if (!dateStr) return false
+
+  const today = todayStr()
+  const yesterday = yesterdayStr()
+
+  if (isT2) {
+    // T+2 基金：gztime 是昨天算已更新
+    return dateStr === yesterday
+  } else {
+    // T+1 基金：gztime 是今天算已更新
+    return dateStr === today
+  }
+}
+
 // ===== 核心数据获取函数 =====
 
 /**
@@ -244,12 +315,28 @@ export function buildResults(fundCodes, batchMap, basicInfo = {}) {
 
   fundCodes.forEach(code => {
     const info = batchMap[code]
+    const shortName = info.SHORTNAME || basicInfo[code] || ''
+    const isT2 = isT2Fund(code, shortName)
+
     if (info && info.GSZ != null) {
       const pdate = (info.PDATE || '').trim()
+
+      // 如果 PDATE 是今天且 DWJZ 不为空，用实际净值替换 GSZ
+      // 这表示今天实际净值已公布
       if (pdate && pdate === today && info.DWJZ != null) {
         info.GSZ = info.DWJZ
         info.GZTIME = pdate
       }
+
+      // 判断是否已更新
+      // T+1: gztime == today
+      // T+2: gztime == yesterday
+      const updated = isNavUpdated(info.GZTIME, isT2)
+
+      // 添加更新状态标记和 T+2 标记
+      info.isNavUpdated = updated
+      info.isT2 = isT2
+
       results.push(info)
     } else {
       noEstimateCodes.push({ code, info: info || {} })
@@ -267,16 +354,28 @@ export function buildResults(fundCodes, batchMap, basicInfo = {}) {
  */
 export async function fetchNoEstimateFunds(noEstimateCodes, basicInfo = {}) {
   const results = []
+
   const promises = noEstimateCodes.map(async item => {
     const lcd = await getLastTradingChange(item.code)
     const shortName = lcd.name || basicInfo[item.code] || item.info.SHORTNAME || ''
+
+    // 判断是否为 T+2 基金
+    const isT2 = isT2Fund(item.code, shortName)
+
+    // 判断是否已更新
+    // T+1: lcd.date == today
+    // T+2: lcd.date == yesterday
+    const updated = isNavUpdated(lcd.date, isT2)
+
     results.push({
       FCODE: item.code,
       SHORTNAME: shortName,
       GSZ: null,
       GSZZL: null,
       GZTIME: lcd.date,
-      LAST_CHG: lcd.change
+      LAST_CHG: lcd.change,
+      isNavUpdated: updated,
+      isT2: isT2
     })
   })
   await Promise.all(promises)
