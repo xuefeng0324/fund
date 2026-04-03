@@ -131,10 +131,15 @@ async function loadData() {
   }
 
   // 异步加载建议数据（不阻塞主流程）
-  const codes = getEffectiveCodes()
-  if (codes && codes.length) {
+  // 构建 code -> fund 映射，将实时估值（GSZZL）传给建议计算
+  const codes2 = getEffectiveCodes()
+  if (codes2 && codes2.length) {
+    const fundsMap = {}
+    funds.value.forEach(f => {
+      if (f.FCODE) fundsMap[f.FCODE] = f
+    })
     adviceLoading.value = true
-    loadAdvice(codes).finally(() => {
+    loadAdvice(codes2, fundsMap).finally(() => {
       adviceLoading.value = false
     })
   }
