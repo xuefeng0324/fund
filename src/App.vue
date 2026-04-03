@@ -33,10 +33,9 @@
       />
     </div>
     <FundManageModal
-      v-if="showManageModal"
+      v-model="showManageModal"
       :key-value="validKey"
       :fund-name-map="fundNameMap"
-      @close="showManageModal = false"
       @saved="onFundSaved"
     />
     <CustomAlert />

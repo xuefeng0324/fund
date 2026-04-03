@@ -1,28 +1,30 @@
 <template>
   <el-dialog
-    v-model="visible"
+    v-model="dialogVisible"
     title="管理基金列表"
     width="90%"
     :close-on-click-modal="false"
     class="fund-manage-dialog"
-    :show-close="true"
-    center
+    @closed="handleClosed"
   >
-    <div class="add-fund-row">
-      <el-input
-        v-model="newCode"
-        placeholder="输入6位基金代码"
-        maxlength="6"
-        @keyup.enter="addFund"
-      />
-      <el-button
-        type="primary"
-        :loading="adding"
-        :disabled="!newCode.trim()"
-        @click="addFund"
-      >
-        {{ adding ? '添加中' : '添加' }}
-      </el-button>
+    <div class="add-fund-section">
+      <div class="add-fund-row">
+        <el-input
+          v-model="newCode"
+          placeholder="输入6位基金代码"
+          maxlength="6"
+          class="code-input"
+          @keyup.enter="addFund"
+        />
+        <el-button
+          type="primary"
+          :loading="adding"
+          :disabled="!newCode.trim()"
+          @click="addFund"
+        >
+          {{ adding ? '添加中' : '添加' }}
+        </el-button>
+      </div>
     </div>
 
     <div class="fund-count">共 {{ managedCodes.length }} 只基金</div>
@@ -48,24 +50,26 @@
     <el-empty v-else description="暂无基金，请添加" />
 
     <template #footer>
-      <el-button @click="close">取消</el-button>
-      <el-button
-        type="primary"
-        :loading="saving"
-        :disabled="managedCodes.length === 0"
-        @click="save"
-      >
-        {{ saving ? '保存中' : '保存' }}
-      </el-button>
+      <div class="dialog-footer">
+        <el-button @click="close">取消</el-button>
+        <el-button
+          type="primary"
+          :loading="saving"
+          :disabled="managedCodes.length === 0"
+          @click="save"
+        >
+          {{ saving ? '保存中' : '保存' }}
+        </el-button>
+      </div>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
 import { Delete } from '@element-plus/icons-vue'
 import { getFileContent, updateFile } from '../api/github'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 const props = defineProps({
   keyValue: { type: String, required: true },
@@ -74,7 +78,9 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved'])
 
-const visible = ref(true)
+// 使用 defineModel 双向绑定
+const dialogVisible = defineModel({ default: true })
+
 const newCode = ref('')
 const adding = ref(false)
 const saving = ref(false)
@@ -84,6 +90,15 @@ const groupsSha = ref('')
 const codesSha = ref('')
 const allCodes = ref([])
 const fundGroups = ref({})
+
+// 监听打开状态，重置内部状态
+watch(dialogVisible, (val) => {
+  if (val) {
+    // 重置状态
+    newCode.value = ''
+    loadAllConfig()
+  }
+})
 
 async function loadAllConfig() {
   try {
@@ -113,9 +128,14 @@ async function addFund() {
     return
   }
 
-  managedCodes.value.push(code)
-  newCode.value = ''
-  ElMessage.success(`已添加 ${code}`)
+  adding.value = true
+  try {
+    managedCodes.value.push(code)
+    newCode.value = ''
+    ElMessage.success(`已添加 ${code}`)
+  } finally {
+    adding.value = false
+  }
 }
 
 function removeFund(code) {
@@ -170,7 +190,10 @@ async function save() {
 }
 
 function close() {
-  visible.value = false
+  dialogVisible.value = false
+}
+
+function handleClosed() {
   emit('close')
 }
 
@@ -179,13 +202,17 @@ watch(() => props.keyValue, loadAllConfig)
 </script>
 
 <style scoped>
-.add-fund-row {
-  display: flex;
-  gap: 12px;
+.add-fund-section {
   margin-bottom: 16px;
 }
 
-.add-fund-row :deep(.el-input) {
+.add-fund-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.code-input {
   flex: 1;
 }
 
@@ -209,15 +236,15 @@ watch(() => props.keyValue, loadAllConfig)
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: #f9fafb;
+  background: #fafafa;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
   transition: all 0.15s;
 }
 
 .fund-item:hover {
-  border-color: #d1d5db;
-  background: #f3f4f6;
+  border-color: #4f46e5;
+  background: #f5f7ff;
 }
 
 .fund-info {
@@ -230,7 +257,7 @@ watch(() => props.keyValue, loadAllConfig)
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 14px;
   font-weight: 700;
-  color: #1f2937;
+  color: #1a1a1a;
 }
 
 .fund-name {
@@ -239,43 +266,52 @@ watch(() => props.keyValue, loadAllConfig)
   font-weight: 500;
 }
 
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
 /* 移动端适配 */
 @media (max-width: 768px) {
-  .fund-manage-dialog :deep(.el-dialog) {
+  :deep(.el-dialog) {
     width: 92% !important;
     max-width: 92%;
-    margin: 16px auto !important;
+    margin: auto !important;
+    top: 50% !important;
+    transform: translateY(-50%);
+    max-height: 85vh;
+    border-radius: 8px;
   }
 
-  .fund-manage-dialog :deep(.el-dialog__header) {
-    padding: 16px;
+  :deep(.el-dialog__header) {
+    padding: 12px 16px;
     margin-right: 0;
   }
 
-  .fund-manage-dialog :deep(.el-dialog__title) {
+  :deep(.el-dialog__title) {
     font-size: 16px;
     font-weight: 600;
+    color: #1a1a1a;
   }
 
-  .fund-manage-dialog :deep(.el-dialog__body) {
-    padding: 16px;
-  }
-
-  .fund-manage-dialog :deep(.el-dialog__footer) {
+  :deep(.el-dialog__body) {
     padding: 12px 16px;
+    max-height: calc(85vh - 120px);
+    overflow-y: auto;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 10px 16px;
   }
 
   .add-fund-row {
-    flex-direction: column;
+    flex-direction: row;
     gap: 10px;
   }
 
-  .add-fund-row :deep(.el-input) {
-    width: 100% !important;
-  }
-
-  .add-fund-row :deep(.el-button) {
-    width: 100%;
+  .code-input {
+    flex: 1;
   }
 
   .fund-list {
@@ -284,7 +320,6 @@ watch(() => props.keyValue, loadAllConfig)
 
   .fund-item {
     padding: 10px 12px;
-    flex-wrap: wrap;
   }
 
   .fund-info {
@@ -303,7 +338,7 @@ watch(() => props.keyValue, loadAllConfig)
     text-overflow: ellipsis;
     white-space: nowrap;
     flex: 1;
-    max-width: 180px;
+    max-width: 160px;
   }
 }
 </style>
