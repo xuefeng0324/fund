@@ -2,14 +2,15 @@
  * 配置管理组合式函数
  *
  * 负责加载和管理基金配置数据：
- * - 基金代码列表（fund_codes.json）
  * - 基金分组配置（fund_groups.json）
  *
  * 配置文件放在 public/config/ 目录，运行时请求加载
  * 修改配置文件后无需重新构建，刷新页面即可生效
+ *
+ * fundCodes 由 fund_groups.json 中所有分组的代码合并后去重生成
  */
 
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { getFileContent } from '../api/github'
 import { getStorage, setStorage, STORAGE_KEYS } from '../utils/storage'
 
@@ -19,9 +20,13 @@ const CONFIG_FETCH_TIMEOUT = 8000
  * 配置管理 Hook
  */
 export function useConfig() {
-  const fundCodes = ref([])
   const fundGroups = ref({})
-  const configSha = ref({ fundCodes: null, fundGroups: null })
+  // fundCodes 由 fund_groups.json 中所有分组代码合并去重生成
+  const fundCodes = computed(() => {
+    const allCodes = Object.values(fundGroups.value).flat()
+    return [...new Set(allCodes)]
+  })
+  const configSha = ref({ fundGroups: null })
   const loading = ref(false)
   const error = ref(null)
 
@@ -34,29 +39,19 @@ export function useConfig() {
 
     try {
       const t = Date.now()
-      const primaryCodes = `/fund/config/fund_codes.json?t=${t}`
       const primaryGroups = `/fund/config/fund_groups.json?t=${t}`
-      const fallbackCodes = `https://xuefeng0324.github.io/fund/config/fund_codes.json?t=${t}`
       const fallbackGroups = `https://xuefeng0324.github.io/fund/config/fund_groups.json?t=${t}`
 
-      let codes = null
       let groups = null
 
       try {
-        ;[codes, groups] = await Promise.all([
-          fetchJsonWithTimeout(primaryCodes),
-          fetchJsonWithTimeout(primaryGroups)
-        ])
+        groups = await fetchJsonWithTimeout(primaryGroups)
       } catch (e1) {
         try {
-          ;[codes, groups] = await Promise.all([
-            fetchJsonWithTimeout(fallbackCodes),
-            fetchJsonWithTimeout(fallbackGroups)
-          ])
+          groups = await fetchJsonWithTimeout(fallbackGroups)
         } catch (e2) {
           const cached = getStorage(STORAGE_KEYS.USER_CONFIG)
-          if (cached && Array.isArray(cached.fundCodes) && cached.fundCodes.length > 0 && cached.fundGroups) {
-            fundCodes.value = cached.fundCodes
+          if (cached && cached.fundGroups) {
             fundGroups.value = cached.fundGroups
             return { fundCodes: fundCodes.value, fundGroups: fundGroups.value, fromCache: true }
           }
@@ -64,10 +59,8 @@ export function useConfig() {
         }
       }
 
-      fundCodes.value = Array.isArray(codes) ? codes : []
       fundGroups.value = groups && typeof groups === 'object' ? groups : {}
       setStorage(STORAGE_KEYS.USER_CONFIG, {
-        fundCodes: fundCodes.value,
         fundGroups: fundGroups.value,
         updatedAt: Date.now()
       })
@@ -100,13 +93,10 @@ export function useConfig() {
    */
   async function loadConfigFromGitHub(token) {
     try {
-      const config = await getFileContent('public/config/fund_codes.json', token)
       const groups = await getFileContent('public/config/fund_groups.json', token)
 
-      fundCodes.value = config.content
       fundGroups.value = groups.content
       configSha.value = {
-        fundCodes: config.sha,
         fundGroups: groups.sha
       }
 

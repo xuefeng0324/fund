@@ -6,6 +6,7 @@
 
 | 版本 | 发布日期 | 说明 |
 |------|----------|------|
+| v2.2.2 | 2026-04-08 | 移除 fund_codes.json，基金代码由 fund_groups.json 合并去重生成 |
 | v2.2.1 | 2026-04-03 | 修复建议逻辑：对齐 Python 脚本，修复 gszzl 未传递、持仓/空仓独立计算、ISO 周算法等问题 |
 | v2.1.15 | 2026-04-03 | 重构管理基金列表页面，修复弹窗无法再次打开的问题 |
 | v2.1.14 | 2026-04-02 | fundgz 补齐添加重试策略 |
@@ -74,8 +75,7 @@ fund/
 │       └── storage.js           # localStorage 管理
 ├── public/                       # 静态文件（不打包）
 │   ├── config/
-│   │   ├── fund_codes.json      # 基金代码配置
-│   │   └── fund_groups.json     # 分组配置
+│   │   └── fund_groups.json     # 分组配置（包含所有基金代码）
 │   └── favicon.svg
 ├── changelog/                    # 变更日志
 │   └── YYYY-MM-DD-变更标题.md    # 按日期记录变更
@@ -130,18 +130,6 @@ npm run preview
 
 ## 配置说明
 
-### 基金代码配置
-
-编辑 `public/config/fund_codes.json`：
-
-```json
-[
-  "001549",
-  "012922",
-  "024195"
-]
-```
-
 ### 分组配置
 
 编辑 `public/config/fund_groups.json`：
@@ -152,6 +140,8 @@ npm run preview
   "lun": ["006328", "008591"]
 }
 ```
+
+所有基金代码由各分组的代码合并后去重生成，无需单独维护基金代码列表。
 
 ### 密钥验证
 
@@ -271,6 +261,14 @@ npm run build
 ## 更新日志
 
 详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期-版本-变更信息记录。
+
+### v2.2.2 (2026-04-08)
+
+**配置重构**
+- 移除 `fund_codes.json` 配置文件
+- 基金代码由 `fund_groups.json` 中所有分组合并后去重生成
+- 简化配置管理，只需维护一份配置文件
+- FundManageModal 保存逻辑简化，不再同步 fund_codes.json
 
 ### v2.2.1 (2026-04-03)
 

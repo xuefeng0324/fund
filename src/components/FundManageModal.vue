@@ -87,8 +87,6 @@ const saving = ref(false)
 const managedCodes = ref([])
 
 const groupsSha = ref('')
-const codesSha = ref('')
-const allCodes = ref([])
 const fundGroups = ref({})
 
 // 监听打开状态，重置内部状态
@@ -102,12 +100,7 @@ watch(dialogVisible, (val) => {
 
 async function loadAllConfig() {
   try {
-    const [codes, groups] = await Promise.all([
-      getFileContent('public/config/fund_codes.json'),
-      getFileContent('public/config/fund_groups.json')
-    ])
-    allCodes.value = codes.content
-    codesSha.value = codes.sha
+    const groups = await getFileContent('public/config/fund_groups.json')
     fundGroups.value = groups.content
     groupsSha.value = groups.sha
     managedCodes.value = groups.content[props.keyValue] || []
@@ -152,8 +145,8 @@ async function save() {
 
   try {
     fundGroups.value[props.keyValue] = managedCodes.value
-    const allGroupCodes = Object.values(fundGroups.value).flat()
-    const uniqueCodes = [...new Set([...allCodes.value, ...allGroupCodes])]
+    // 所有分组的代码合并去重生成 fundCodes
+    const uniqueCodes = [...new Set(Object.values(fundGroups.value).flat())]
 
     await updateFile(
       'public/config/fund_groups.json',
@@ -162,16 +155,6 @@ async function save() {
       undefined,
       `Update fund groups for ${props.keyValue}`
     )
-
-    if (uniqueCodes.length !== allCodes.value.length) {
-      await updateFile(
-        'public/config/fund_codes.json',
-        uniqueCodes,
-        codesSha.value,
-        undefined,
-        'Update fund codes'
-      )
-    }
 
     ElMessage.success('基金列表已保存到 GitHub')
 
