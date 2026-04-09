@@ -657,20 +657,21 @@ const sortedFunds = computed(() => {
 }
 
 .fund-card :deep(.el-card__body) {
-  padding: 16px;
+  padding: 12px;
 }
 
 /* 卡片标题行（始终显示，位置固定） */
 .card-title-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: stretch;
+  min-height: 40px;
 }
 
 .fund-title-info {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 2px;
   flex: 1;
   min-width: 0;
@@ -683,6 +684,7 @@ const sortedFunds = computed(() => {
 .fund-change-wrap {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   align-items: flex-end;
   gap: 2px;
   flex-shrink: 0;
@@ -731,13 +733,15 @@ const sortedFunds = computed(() => {
 .fund-info {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 2px;
 }
 
 .fund-name {
-  font-size: 15px;
   font-weight: 700;
   color: #0a0b0d;
+  font-size: clamp(13px, 3.5vw, 15px);
+  line-height: 1.2;
 }
 
 .fund-code {
@@ -820,7 +824,7 @@ const sortedFunds = computed(() => {
 }
 
 .time {
-  font-size: 11px;
+  font-size: 12px;
   color: #5b616e;
   white-space: nowrap;
   margin-left: 8px;
