@@ -128,12 +128,12 @@ function handleSwitchChange(val) {
 
   isSwitchingView = true
   if (val) {
-    // 切换到全部
+    // 切换到全部：只改变显示模式，不清空密钥
     emit('update:showAll', true)
-    emit('update:keyValue', '')
   } else {
     // 切换到自己
     emit('update:showAll', false)
+    // 如果密钥输入框有值，重新触发密钥验证
     if (localKey.value.trim()) {
       emit('update:keyValue', localKey.value.trim())
     }
