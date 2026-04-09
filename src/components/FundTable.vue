@@ -486,7 +486,7 @@ const sortedFunds = computed(() => {
 .sub-section-title {
   font-weight: 700;
   font-size: 16px;
-  color: #1a1a1a;
+  color: #0a0b0d;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -497,7 +497,7 @@ const sortedFunds = computed(() => {
   content: '';
   width: 4px;
   height: 16px;
-  background: #4f46e5;
+  background: #0052ff;
   border-radius: 2px;
   flex-shrink: 0;
 }
@@ -511,8 +511,8 @@ const sortedFunds = computed(() => {
 }
 
 .fund-table {
-  --el-table-border-color: #e5e7eb;
-  border-radius: 12px;
+  --el-table-border-color: rgba(91, 97, 110, 0.2);
+  border-radius: 16px;
   overflow: hidden;
   font-weight: 600;
 }
@@ -550,7 +550,7 @@ const sortedFunds = computed(() => {
 
 /* 持有、观望 → 灰色 */
 .advice-neutral {
-  color: #6b7280 !important;
+  color: #5b616e !important;
   font-weight: 600;
   font-size: 14px;
 }
@@ -589,7 +589,7 @@ const sortedFunds = computed(() => {
 }
 
 .mobile-sort :deep(.el-button) {
-  border-radius: 10px;
+  border-radius: 56px;
 }
 
 .sort-switch-wrap {
@@ -608,46 +608,46 @@ const sortedFunds = computed(() => {
 
 .expand-btn {
   font-size: 12px;
-  color: #4f46e5;
+  color: #0052ff;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .expand-btn.disabled {
-  color: #9ca3af;
+  color: #5b616e;
   cursor: not-allowed;
 }
 
 .sort-label-text.disabled {
-  color: #9ca3af;
+  color: #5b616e;
   cursor: not-allowed;
 }
 
 .sort-label-text {
   font-size: 13px;
-  color: #9ca3af;
+  color: #5b616e;
   cursor: pointer;
   transition: color 0.2s;
 }
 
 .sort-label-text.active {
-  color: #4f46e5;
+  color: #0052ff;
   font-weight: 500;
 }
 
 .sort-switch {
-  --el-switch-on-color: #4f46e5;
+  --el-switch-on-color: #0052ff;
 }
 
 .sort-label {
   font-size: 13px;
-  color: #666;
+  color: #5b616e;
   font-weight: 500;
 }
 
 .fund-card {
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  border: 1px solid rgba(91, 97, 110, 0.2);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -737,12 +737,12 @@ const sortedFunds = computed(() => {
 .fund-name {
   font-size: 15px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #0a0b0d;
 }
 
 .fund-code {
   font-size: 12px;
-  color: #888;
+  color: #5b616e;
 }
 
 .fund-change {
@@ -764,13 +764,13 @@ const sortedFunds = computed(() => {
 
 .card-item .label {
   font-size: 12px;
-  color: #9ca3af;
+  color: #5b616e;
 }
 
 .card-item .value {
   font-size: 14px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #0a0b0d;
 }
 
 .card-item span:not(.label) {
@@ -785,12 +785,12 @@ const sortedFunds = computed(() => {
   align-items: center;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid rgba(91, 97, 110, 0.2);
 }
 
 .reason {
   font-size: 12px;
-  color: #666;
+  color: #5b616e;
   flex: 1;
   white-space: pre-line;
   line-height: 1.4;
@@ -813,7 +813,7 @@ const sortedFunds = computed(() => {
 }
 
 .advice-divider {
-  color: #9ca3af;
+  color: #5b616e;
   font-size: 12px;
   font-weight: 400;
   line-height: 1;
@@ -821,13 +821,13 @@ const sortedFunds = computed(() => {
 
 .time {
   font-size: 11px;
-  color: #9ca3af;
+  color: #5b616e;
   white-space: nowrap;
   margin-left: 8px;
 }
 
 .loading-text {
-  color: #9ca3af;
+  color: #5b616e;
 }
 
 @media (max-width: 768px) {

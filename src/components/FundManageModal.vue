@@ -2,7 +2,6 @@
   <el-dialog
     v-model="dialogVisible"
     title="管理基金列表"
-    width="90%"
     :close-on-click-modal="false"
     class="fund-manage-dialog"
     @closed="handleClosed"
@@ -27,7 +26,7 @@
       </div>
     </div>
 
-    <div class="fund-count">共 {{ managedCodes.length }} 只基金</div>
+    <div class="fund-count">共 <span class="count-num">{{ managedCodes.length }}</span> 只基金</div>
 
     <div v-if="managedCodes.length > 0" class="fund-list">
       <div v-for="code in managedCodes" :key="code" class="fund-item">
@@ -35,19 +34,13 @@
           <span class="fund-code">{{ code }}</span>
           <span class="fund-name">{{ props.fundNameMap[code] || '--' }}</span>
         </div>
-        <el-button
-          type="danger"
-          plain
-          size="small"
-          circle
-          @click="removeFund(code)"
-        >
-          <el-icon><Delete /></el-icon>
-        </el-button>
+        <button class="remove-btn" @click="removeFund(code)" title="移除">
+          <el-icon><CircleCloseFilled /></el-icon>
+        </button>
       </div>
     </div>
 
-    <el-empty v-else description="暂无基金，请添加" />
+    <el-empty v-else description="暂无基金，请添加" :image-size="80" />
 
     <template #footer>
       <div class="dialog-footer">
@@ -66,8 +59,8 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick } from 'vue'
-import { Delete } from '@element-plus/icons-vue'
+import { ref, watch, onMounted } from 'vue'
+import { CircleCloseFilled } from '@element-plus/icons-vue'
 import { getFileContent, updateFile } from '../api/github'
 import { ElMessage } from 'element-plus'
 
@@ -186,7 +179,7 @@ watch(() => props.keyValue, loadAllConfig)
 
 <style scoped>
 .add-fund-section {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .add-fund-row {
@@ -201,17 +194,40 @@ watch(() => props.keyValue, loadAllConfig)
 
 .fund-count {
   font-size: 13px;
-  color: #6b7280;
+  color: #5b616e;
   margin-bottom: 12px;
   font-weight: 500;
+}
+
+.count-num {
+  color: #0052ff;
+  font-weight: 700;
 }
 
 .fund-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 300px;
+  max-height: 320px;
   overflow-y: auto;
+  padding-right: 4px;
+}
+
+.fund-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.fund-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fund-list::-webkit-scrollbar-thumb {
+  background: rgba(91, 97, 110, 0.3);
+  border-radius: 3px;
+}
+
+.fund-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(91, 97, 110, 0.5);
 }
 
 .fund-item {
@@ -219,95 +235,101 @@ watch(() => props.keyValue, loadAllConfig)
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: #fafafa;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  transition: all 0.15s;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(91, 97, 110, 0.2);
+  transition: all 0.2s ease;
 }
 
 .fund-item:hover {
-  border-color: #4f46e5;
-  background: #f5f7ff;
+  border-color: #0052ff;
+  box-shadow: 0 2px 8px rgba(0, 82, 255, 0.1);
 }
 
 .fund-info {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .fund-code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 14px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #0a0b0d;
+  flex-shrink: 0;
 }
 
 .fund-name {
   font-size: 13px;
-  color: #6b7280;
+  color: #5b616e;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #5b616e;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.remove-btn:hover {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.remove-btn .el-icon {
+  font-size: 18px;
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 8px;
 }
 
 /* 移动端适配 */
 @media (max-width: 768px) {
-  :deep(.el-dialog) {
-    width: 92% !important;
-    max-width: 92%;
-    margin: auto !important;
-    top: 50% !important;
-    transform: translateY(-50%);
-    max-height: 85vh;
-    border-radius: 8px;
-  }
-
-  :deep(.el-dialog__header) {
-    padding: 12px 16px;
-    margin-right: 0;
-  }
-
-  :deep(.el-dialog__title) {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1a1a1a;
-  }
-
-  :deep(.el-dialog__body) {
-    padding: 12px 16px;
-    max-height: calc(85vh - 120px);
-    overflow-y: auto;
-  }
-
-  :deep(.el-dialog__footer) {
-    padding: 10px 16px;
+  .add-fund-section {
+    margin-bottom: 16px;
   }
 
   .add-fund-row {
-    flex-direction: row;
     gap: 10px;
   }
 
-  .code-input {
-    flex: 1;
+  .fund-count {
+    margin-bottom: 10px;
   }
 
   .fund-list {
-    max-height: 50vh;
+    max-height: 45vh;
+    gap: 6px;
   }
 
   .fund-item {
     padding: 10px 12px;
+    border-radius: 12px;
   }
 
   .fund-info {
-    flex: 1;
-    min-width: 0;
     gap: 8px;
   }
 
@@ -317,11 +339,148 @@ watch(() => props.keyValue, loadAllConfig)
 
   .fund-name {
     font-size: 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
-    max-width: 160px;
+  }
+
+  .remove-btn {
+    width: 26px;
+    height: 26px;
+    margin-left: 6px;
+  }
+
+  .remove-btn .el-icon {
+    font-size: 16px;
+  }
+
+  .dialog-footer {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .add-fund-row {
+    gap: 8px;
+  }
+
+  .fund-list {
+    max-height: 40vh;
+  }
+
+  .fund-item {
+    padding: 8px 10px;
+  }
+
+  .fund-code {
+    font-size: 12px;
+  }
+
+  .fund-name {
+    font-size: 11px;
+  }
+}
+</style>
+
+<style>
+/* 全局样式 - 覆盖 Element Plus 内联样式 */
+.fund-manage-dialog {
+  --el-dialog-width: 480px;
+}
+
+.fund-manage-dialog .el-dialog {
+  width: var(--el-dialog-width) !important;
+  max-width: 90vw;
+  border-radius: 24px;
+}
+
+.fund-manage-dialog .el-dialog__header {
+  padding: 16px 20px;
+  margin-right: 0;
+}
+
+.fund-manage-dialog .el-dialog__body {
+  padding: 16px 20px;
+}
+
+.fund-manage-dialog .el-dialog__footer {
+  padding: 12px 20px;
+}
+
+.fund-manage-dialog .el-dialog__footer .el-button {
+  min-width: 80px;
+}
+
+/* 平板端 */
+@media screen and (max-width: 768px) {
+  .fund-manage-dialog {
+    --el-dialog-width: 96%;
+  }
+
+  .fund-manage-dialog .el-dialog {
+    width: var(--el-dialog-width) !important;
+    max-width: 96% !important;
+    margin: auto !important;
+    top: 50% !important;
+    transform: translateY(-50%);
+    max-height: 85vh;
+  }
+
+  .fund-manage-dialog .el-dialog__header {
+    padding: 14px 16px;
+  }
+
+  .fund-manage-dialog .el-dialog__title {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .fund-manage-dialog .el-dialog__body {
+    padding: 14px 16px;
+    max-height: calc(85vh - 130px);
+    overflow-y: auto;
+  }
+
+  .fund-manage-dialog .el-dialog__footer {
+    padding: 12px 16px;
+  }
+
+  .fund-manage-dialog .el-dialog__footer .el-button {
+    min-width: 70px;
+    padding: 8px 16px;
+  }
+}
+
+/* 手机端 */
+@media screen and (max-width: 480px) {
+  .fund-manage-dialog {
+    --el-dialog-width: 96%;
+  }
+
+  .fund-manage-dialog .el-dialog {
+    width: var(--el-dialog-width) !important;
+    max-width: 96% !important;
+    margin: 0 auto !important;
+    border-radius: 16px !important;
+  }
+
+  .fund-manage-dialog .el-dialog__header {
+    padding: 12px 14px;
+  }
+
+  .fund-manage-dialog .el-dialog__title {
+    font-size: 15px;
+  }
+
+  .fund-manage-dialog .el-dialog__body {
+    padding: 12px 14px;
+  }
+
+  .fund-manage-dialog .el-dialog__footer {
+    padding: 10px 14px;
+  }
+
+  .fund-manage-dialog .el-dialog__footer .el-button {
+    min-width: 60px;
+    padding: 6px 12px;
+    font-size: 13px;
   }
 }
 </style>

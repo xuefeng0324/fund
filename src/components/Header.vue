@@ -51,7 +51,8 @@ onUnmounted(() => {
 <style scoped>
 .header-menu {
   padding: 0 24px;
-  border-bottom: 1px solid #e8e8e8;
+  border-bottom: 1px solid rgba(91, 97, 110, 0.2);
+  background: #fff;
 }
 
 .header-left {
@@ -69,19 +70,19 @@ onUnmounted(() => {
 
 .logo :deep(.el-icon) {
   font-size: 24px;
-  color: #4f46e5;
+  color: #0052ff;
 }
 
 .title {
   font-size: 18px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #0a0b0d;
   letter-spacing: -0.3px;
 }
 
 .subtitle {
   font-size: 12px;
-  color: #4f46e5;
+  color: #0052ff;
   font-weight: 500;
   margin-left: 4px;
 }
@@ -93,7 +94,7 @@ onUnmounted(() => {
 
 .current-time {
   font-size: 13px;
-  color: #666;
+  color: #5b616e;
   font-weight: 600;
   margin-right: 8px;
 }
@@ -102,7 +103,7 @@ onUnmounted(() => {
   height: 60px;
   line-height: 60px;
   font-size: 13px;
-  color: #666;
+  color: #5b616e;
 }
 
 .header-right :deep(.el-icon) {

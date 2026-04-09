@@ -1,23 +1,25 @@
 <template>
   <div class="index-strip">
-    <div
-      v-for="item in data"
-      :key="item.code"
-      class="index-card"
-    >
-      <div class="index-card-title">{{ item.name || item.code }}</div>
-      <div class="index-card-main" :class="priceClass(item)">
-        {{ formatPrice(item.last) }}
+    <div class="index-strip-inner">
+      <div
+        v-for="item in data"
+        :key="item.code"
+        class="index-card"
+      >
+        <div class="index-card-title">{{ item.name || item.code }}</div>
+        <div class="index-card-price">
+          {{ formatPrice(item) }}
+        </div>
+        <div class="index-card-chg" :class="priceClass(item)">
+          {{ formatChange(item) }}
+        </div>
+        <div class="index-card-pct" :class="priceClass(item)">
+          {{ formatPct(item) }}
+        </div>
       </div>
-      <div class="index-card-chg" :class="priceClass(item)">
-        {{ formatChange(item) }}
+      <div v-if="!data || !data.length" class="muted">
+        指数数据加载中...
       </div>
-      <div class="index-card-pct" :class="priceClass(item)">
-        {{ formatPct(item) }}
-      </div>
-    </div>
-    <div v-if="!data || !data.length" class="muted">
-      指数数据加载中...
     </div>
   </div>
 </template>
@@ -30,9 +32,9 @@ defineProps({
   }
 })
 
-function formatPrice(val) {
-  if (val == null || isNaN(parseFloat(val))) return '--'
-  return parseFloat(val).toFixed(2)
+function formatPrice(item) {
+  if (item.last == null || isNaN(parseFloat(item.last))) return '--'
+  return parseFloat(item.last).toFixed(2)
 }
 
 function formatChange(item) {
@@ -56,64 +58,59 @@ function priceClass(item) {
 <style scoped>
 .index-strip {
   display: flex;
-  gap: 12px;
-  padding: 16px 24px;
+  justify-content: center;
+  padding: 12px 32px;
   background: #fff;
-  overflow-x: auto;
-  border-bottom: 1px solid #e8e8e8;
-  min-width: 100%;
+  border-bottom: 1px solid rgba(91, 97, 110, 0.2);
   box-sizing: border-box;
+}
+
+.index-strip-inner {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 1344px;
+  margin: 0 auto;
 }
 
 .index-card {
   flex: 1;
-  min-width: 120px;
-  padding: 12px 16px;
-  background: #fafafa;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  transition: all 0.2s ease;
+  padding: 10px 12px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid rgba(91, 97, 110, 0.2);
+  text-align: center;
+  transition: border-color 0.2s ease;
 }
 
 .index-card:hover {
-  border-color: #4f46e5;
-  background: #f5f7ff;
+  border-color: #0052ff;
 }
 
 .index-card-title {
   font-size: 12px;
-  margin-bottom: 6px;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  color: #5b616e;
   font-weight: 600;
 }
 
-.index-card-main {
-  font-size: 20px;
+.index-card-price {
+  font-size: 18px;
   font-weight: 700;
-  color: #1a1a1a;
-  letter-spacing: -0.5px;
-}
-
-.index-card-sub {
-  font-size: 13px;
-  margin-top: 2px;
-  color: #374151;
-  font-weight: 600;
+  color: #0a0b0d;
+  margin-bottom: 2px;
 }
 
 .index-card-chg {
   font-size: 13px;
-  margin-top: 2px;
-  color: #374151;
+  font-weight: 600;
+  color: #5b616e;
 }
 
 .index-card-pct {
   font-size: 13px;
-  margin-top: 2px;
-  color: #374151;
   font-weight: 600;
+  color: #5b616e;
 }
 
 .positive {
@@ -125,21 +122,19 @@ function priceClass(item) {
 }
 
 .muted {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #9ca3af;
+  color: #5b616e;
   font-size: 13px;
+  padding: 12px;
 }
 
 @media (max-width: 768px) {
   .index-strip {
-    padding: 8px 12px;
-    gap: 6px;
+    padding: 8px 16px;
+  }
+
+  .index-strip-inner {
     flex-wrap: wrap;
-    overflow-x: visible;
-    box-sizing: border-box;
+    gap: 6px;
   }
 
   .index-card {
@@ -147,35 +142,21 @@ function priceClass(item) {
     max-width: calc(25% - 6px);
     min-width: 0;
     padding: 6px 4px;
-    box-sizing: border-box;
   }
 
   .index-card-title {
     font-size: 11px;
-    margin-bottom: 1px;
-    text-align: center;
+    margin-bottom: 2px;
     font-weight: 700;
   }
 
-  .index-card-main {
+  .index-card-price {
     font-size: 14px;
-    text-align: center;
     margin-bottom: 1px;
-    font-weight: 700;
   }
 
   .index-card-chg {
     font-size: 11px;
-    text-align: center;
-    margin-top: 0;
-  }
-
-  .index-card-pct {
-    font-size: 11px;
-    text-align: center;
-    margin-top: 0;
-    font-weight: 700;
   }
 }
-
 </style>

@@ -211,13 +211,13 @@ function formatTime(date) {
 
 .switch-label {
   font-size: 14px;
-  color: #9ca3af;
+  color: #5b616e;
   cursor: pointer;
   transition: color 0.2s;
 }
 
 .switch-label.active {
-  color: #4f46e5;
+  color: #0052ff;
   font-weight: 500;
 }
 
@@ -228,13 +228,13 @@ function formatTime(date) {
 
 .update-time {
   font-size: 13px;
-  color: #6b7280;
+  color: #5b616e;
   font-weight: 500;
   margin-left: 8px;
 }
 
 .toolbar :deep(.el-button) {
-  border-radius: 10px;
+  border-radius: 56px;
 }
 
 .toolbar :deep(.el-button .is-loading) {
@@ -255,11 +255,11 @@ function formatTime(date) {
 }
 
 .toolbar :deep(.el-input__wrapper) {
-  border-radius: 10px;
+  border-radius: 56px;
 }
 
 .toolbar :deep(.el-select .el-input__wrapper) {
-  border-radius: 10px;
+  border-radius: 56px;
 }
 
 /* PC端隐藏第三行更新时间 */
