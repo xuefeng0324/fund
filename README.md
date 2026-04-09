@@ -45,6 +45,7 @@
 |------|------|------|
 | Vue 3 | ^3.4.0 | 前端框架 |
 | Vite | ^5.0.0 | 构建工具 |
+| Element Plus | ^2.5.0 | UI 组件库 |
 | Composition API | - | 组合式逻辑复用 |
 
 ## 项目结构
@@ -54,6 +55,8 @@ fund/
 ├── src/                          # 源代码
 │   ├── App.vue                  # 根组件
 │   ├── main.js                  # 入口文件
+│   ├── assets/
+│   │   └── style.css            # 全局样式（Coinbase风格）
 │   ├── components/              # Vue 组件
 │   │   ├── Header.vue           # 顶部导航栏
 │   │   ├── IndexStrip.vue       # 指数卡片条
@@ -79,6 +82,7 @@ fund/
 │   ├── config/
 │   │   └── fund_groups.json     # 分组配置（包含所有基金代码）
 │   └── favicon.svg
+├── DESIGN.md                     # 设计规范文档
 ├── changelog/                    # 变更日志
 │   └── YYYY-MM-DD-变更标题.md    # 按日期记录变更
 ├── dist/                         # 构建输出
@@ -263,6 +267,17 @@ npm run build
 ## 更新日志
 
 详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期-版本-变更信息记录。
+
+### v2.3.0 (2026-04-09)
+
+**UI 重构 — Coinbase 设计风格**
+- 全面重构 UI 为 Coinbase 设计风格，统一颜色系统、圆角规范
+- 新增 DESIGN.md 设计规范文档
+- 品牌色：#0052ff，深色：#0a0b0d，背景：#ffffff
+- 圆角规范：按钮 56px、卡片 16px、对话框 24px
+- 表格头部蓝色背景，标题蓝色装饰条
+- 指数卡片四行显示（名称、价格、涨跌、百分比）
+- 管理基金弹窗全端适配
 
 ### v2.2.3 (2026-04-09)
 
