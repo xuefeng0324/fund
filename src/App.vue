@@ -65,9 +65,31 @@ const showManageModal = ref(false)
 const validKey = ref('')
 const lastUpdate = ref(null)
 const searchKeyword = ref('')
+
+// 滚动透明化相关状态
+const indexStripOpacity = ref(1)
+let ticking = false
+let rafId = null
+const stickyHeaderEl = ref(null)
+const fundTableEl = ref(null)
+
 // 自动刷新定时器
 let refreshTimer = null
 const REFRESH_INTERVAL = 2 * 60 * 1000 // 2分钟
+
+// 缓动函数：ease-out cubic
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3)
+}
+
+// 动态计算淡出起始距离（基于 IndexStrip 高度）
+function getFadeDistance() {
+  const indexStripEl = stickyHeaderEl.value?.querySelector('.index-strip')
+  if (!indexStripEl) return 200 // 默认值
+
+  const stripHeight = indexStripEl.offsetHeight
+  return stripHeight + 50 // IndexStrip 高度 + 缓冲
+}
 
 // 重置定时器（手动刷新后调用，避免短时间内连续触发）
 function resetTimer() {
