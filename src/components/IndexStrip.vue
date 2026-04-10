@@ -1,5 +1,5 @@
 <template>
-  <div class="index-strip">
+  <div class="index-strip" :style="{ opacity: opacity }">
     <div class="index-strip-inner">
       <div
         v-for="item in data"
@@ -29,6 +29,10 @@ defineProps({
   data: {
     type: Array,
     default: () => []
+  },
+  opacity: {
+    type: Number,
+    default: 1
   }
 })
 
@@ -63,6 +67,7 @@ function priceClass(item) {
   background: #fff;
   border-bottom: 1px solid rgba(91, 97, 110, 0.2);
   box-sizing: border-box;
+  transition: opacity 0.15s ease-out;
 }
 
 .index-strip-inner {
