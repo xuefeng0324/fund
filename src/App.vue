@@ -91,6 +91,28 @@ function getFadeDistance() {
   return stripHeight + 50 // IndexStrip 高度 + 缓冲
 }
 
+// 计算并更新 IndexStrip opacity
+function calculateOpacity() {
+  if (!stickyHeaderEl.value || !fundTableEl.value) return
+
+  const headerBottom = stickyHeaderEl.value.getBoundingClientRect().bottom
+  const tableTop = fundTableEl.value.getBoundingClientRect().top
+
+  const distance = tableTop - headerBottom
+  const fadeDistance = getFadeDistance()
+
+  // 进度映射: distance 从 fadeDistance 到 0，progress 从 1 到 0
+  let progress = Math.min(Math.max(distance / fadeDistance, 0), 1)
+
+  // 应用 ease-out 缓动
+  const newOpacity = easeOutCubic(progress)
+
+  // 只有值变化超过阈值才更新，避免频繁触发响应式更新
+  if (Math.abs(newOpacity - indexStripOpacity.value) > 0.01) {
+    indexStripOpacity.value = newOpacity
+  }
+}
+
 // 重置定时器（手动刷新后调用，避免短时间内连续触发）
 function resetTimer() {
   if (refreshTimer) {
