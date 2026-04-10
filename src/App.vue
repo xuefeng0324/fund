@@ -2,7 +2,7 @@
   <div id="app">
     <div class="sticky-header">
       <Header />
-      <IndexStrip :data="indexData" />
+      <IndexStrip :data="indexData" :opacity="indexStripOpacity" />
     </div>
     <div class="container">
       <Toolbar
@@ -110,6 +110,17 @@ function calculateOpacity() {
   // 只有值变化超过阈值才更新，避免频繁触发响应式更新
   if (Math.abs(newOpacity - indexStripOpacity.value) > 0.01) {
     indexStripOpacity.value = newOpacity
+  }
+}
+
+// 滚动事件处理（使用 requestAnimationFrame 包装）
+function onScroll() {
+  if (!ticking) {
+    rafId = requestAnimationFrame(() => {
+      calculateOpacity()
+      ticking = false
+    })
+    ticking = true
   }
 }
 
@@ -267,6 +278,17 @@ onMounted(async () => {
   refreshTimer = setInterval(() => {
     loadData()
   }, REFRESH_INTERVAL)
+
+  // --- 滚动透明化初始化 ---
+  // 获取元素引用
+  stickyHeaderEl.value = document.querySelector('.sticky-header')
+  fundTableEl.value = document.querySelector('.fund-section')
+
+  // 初始化 opacity（当前滚动位置）
+  calculateOpacity()
+
+  // 添加滚动监听
+  window.addEventListener('scroll', onScroll, { passive: true })
 })
 
 // 组件卸载时清理定时器
@@ -274,6 +296,13 @@ onUnmounted(() => {
   if (refreshTimer) {
     clearInterval(refreshTimer)
     refreshTimer = null
+  }
+
+  // 清理滚动监听
+  window.removeEventListener('scroll', onScroll)
+  if (rafId) {
+    cancelAnimationFrame(rafId)
+    rafId = null
   }
 })
 </script>
