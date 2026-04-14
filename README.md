@@ -119,13 +119,6 @@ npm run dev
 VITE_GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 ```
 
-开发服务器配置了 API 代理以解决 CORS 问题：
-
-| 代理路径 | 目标域名 | 用途 |
-|----------|----------|------|
-| `/api/eastmoney-fund` | `fund.eastmoney.com` | 净值数据 |
-| `/api/eastmoney-push` | `push2.eastmoney.com` | 指数快照 |
-
 ### 构建生产版本
 
 ```bash
