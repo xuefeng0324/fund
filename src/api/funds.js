@@ -55,12 +55,15 @@ export function fetchRealtimeBatch(codes) {
 }
 
 function fetchSingleBatch(codes) {
-  const url =
+  const targetUrl =
     'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
     '?pageIndex=1&pageSize=200&plat=Android&appType=ttjj&product=EFund&Version=1' +
     '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(','))
 
-  return fetch(url)
+  // 使用 Cloudflare Worker 代理
+  const proxyUrl = `https://fund.mail-to-lyl3052.workers.dev/?url=${encodeURIComponent(targetUrl)}`
+
+  return fetch(proxyUrl)
     .then(r => r.json())
     .then(data => {
       const map = {}
