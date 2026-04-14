@@ -1,5 +1,11 @@
 <template>
-  <div class="index-strip" :style="{ opacity: opacity }">
+  <div
+    class="index-strip"
+    :style="{
+      opacity,
+      pointerEvents: opacity <= 0.01 ? 'none' : 'auto'
+    }"
+  >
     <div class="index-strip-inner">
       <div
         v-for="item in data"

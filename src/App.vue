@@ -312,6 +312,11 @@ onUnmounted(() => {
   position: sticky;
   top: 0;
   z-index: 100;
+  pointer-events: none;
+}
+
+.sticky-header > * {
+  pointer-events: auto;
 }
 
 .container {
