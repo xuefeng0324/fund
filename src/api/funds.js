@@ -33,6 +33,35 @@ function todayStr() {
 // ===== 核心数据获取函数 =====
 
 /**
+ * 统一请求东财 FundMNFInfo 接口（带代理和超时回退）
+ */
+function requestFundMNFInfo(codes, pageSize = 200) {
+  const targetUrl =
+    'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
+    `?pageIndex=1&pageSize=${pageSize}&plat=Android&appType=ttjj&product=EFund&Version=1` +
+    '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(','))
+
+  // 使用 Cloudflare Worker 代理
+  const proxyUrl = `https://fund.mail-to-lyl3052.workers.dev/?url=${encodeURIComponent(targetUrl)}`
+
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 3000)
+
+  return fetch(proxyUrl, { signal: controller.signal })
+    .then(r => {
+      clearTimeout(timeoutId)
+      if (!r.ok) throw new Error(`Proxy error: ${r.status}`)
+      return r.json()
+    })
+    .catch(err => {
+      clearTimeout(timeoutId)
+      console.warn('Worker 代理请求超时或失败，自动回退到直连模式:', err.message)
+      // 如果代理超时或被墙，自动回退到原生直连请求（不带自定义 User-Agent）
+      return fetch(targetUrl).then(r => r.json())
+    })
+}
+
+/**
  * 批量获取基金实时估值
  *
  * 使用东财 FundMNFInfo 接口，一次请求最多 200 只基金
@@ -55,29 +84,7 @@ export function fetchRealtimeBatch(codes) {
 }
 
 function fetchSingleBatch(codes) {
-  const targetUrl =
-    'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
-    '?pageIndex=1&pageSize=200&plat=Android&appType=ttjj&product=EFund&Version=1' +
-    '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(','))
-
-  // 使用 Cloudflare Worker 代理
-  const proxyUrl = `https://fund.mail-to-lyl3052.workers.dev/?url=${encodeURIComponent(targetUrl)}`
-
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 3000)
-
-  return fetch(proxyUrl, { signal: controller.signal })
-    .then(r => {
-      clearTimeout(timeoutId)
-      if (!r.ok) throw new Error(`Proxy error: ${r.status}`)
-      return r.json()
-    })
-    .catch(err => {
-      clearTimeout(timeoutId)
-      console.warn('Worker 代理请求超时或失败，自动回退到直连模式:', err.message)
-      // 如果代理超时或被墙，自动回退到原生直连请求（不带自定义 User-Agent）
-      return fetch(targetUrl).then(r => r.json())
-    })
+  return requestFundMNFInfo(codes, 200)
     .then(data => {
       const map = {}
       const datas = (data && data.Datas) || []
@@ -210,12 +217,7 @@ export async function fetchRealtimeAuto(codes, mode = 'auto') {
 export function fetchFundBasicInfo(codes) {
   if (!codes || !codes.length) return Promise.resolve({})
 
-  const url = 'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
-    '?pageIndex=1&pageSize=' + codes.length + '&plat=Android&appType=ttjj&product=EFund&Version=1' +
-    '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(','))
-
-  return fetch(url)
-    .then(r => r.json())
+  return requestFundMNFInfo(codes, codes.length)
     .then(data => {
       const map = {}
       const datas = (data && data.Datas) || []
