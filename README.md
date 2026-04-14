@@ -6,6 +6,7 @@
 
 | 版本 | 发布日期 | 说明 |
 |------|----------|------|
+| v2.4.3 | 2026-04-14 | 移除不稳定且存在 CORS 限制的 FundMNFInfo 接口，完全使用 JSONP 方案 |
 | v2.4.2 | 2026-04-14 | FundMNFInfo 接口添加移动端 User-Agent |
 | v2.4.1 | 2026-04-14 | 修复指数面板透明后遮挡下方区域点击的问题 |
 | v2.4.0 | 2026-04-10 | IndexStrip 滚动透明化效果：页面下滑时指数区域渐隐，提升视觉体验 |
@@ -123,7 +124,6 @@ VITE_GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 | 代理路径 | 目标域名 | 用途 |
 |----------|----------|------|
 | `/api/eastmoney-fund` | `fund.eastmoney.com` | 净值数据 |
-| `/api/eastmoney-fundmob` | `fundmobapi.eastmoney.com` | 批量估值 |
 | `/api/eastmoney-push` | `push2.eastmoney.com` | 指数快照 |
 
 ### 构建生产版本
@@ -164,10 +164,7 @@ npm run preview
 
 | 函数 | 说明 |
 |------|------|
-| `fetchRealtimeBatch(codes)` | 批量获取基金实时估值 |
 | `fetchSingleFundgz(code)` | 获取单只基金估值（JSONP） |
-| `fetchRealtimeAuto(codes)` | 多源自动补齐 |
-| `fetchFundsLive(codes, mode)` | 主入口函数 |
 | `fetchPingzhongdata(code)` | 获取基金详细数据 |
 
 ### 指数数据 API (`src/api/index.js`)
@@ -200,12 +197,11 @@ npm run preview
 
 | 功能 | 外部 API | 调用方式 |
 |------|----------|---------|
-| 批量基金估值 | `fundmobapi.eastmoney.com` | fetch（支持 CORS） |
 | 单只估值补齐 | `fundgz.1234567.com.cn` | JSONP |
 | 指数快照 | `push2.eastmoney.com` | JSONP |
 | 净值数据 | `fund.eastmoney.com/pingzhongdata` | script 标签 |
 
-> **注意**：`fundmobapi.eastmoney.com` 支持 CORS，可直接使用 fetch。其他接口使用 JSONP 或 script 标签加载方式绕过 CORS 限制。
+> **注意**：所有接口使用 JSONP 或 script 标签加载方式绕过 CORS 限制。
 
 ## 部署
 
@@ -271,6 +267,13 @@ npm run build
 ## 更新日志
 
 详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期-版本-变更信息记录。
+
+### v2.4.3 (2026-04-14)
+
+**API 移除与简化**
+- 彻底移除 `FundMNewApi/FundMNFInfo` 接口的调用逻辑。由于浏览器的安全限制，该接口经常出现 CORS 问题和 User-Agent 限制。
+- `fetchRealtimeBatch` 和 `fetchFundBasicInfo` 等关联函数已一并移除。
+- 项目现在完全依赖于不受跨域限制的 `fundgz` (JSONP) 和 `pingzhongdata` (Script 标签) 接口，提升稳定性和环境兼容性。
 
 ### v2.4.2 (2026-04-14)
 

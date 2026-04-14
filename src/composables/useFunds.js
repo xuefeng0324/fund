@@ -7,9 +7,7 @@
 
 import { ref, reactive } from 'vue'
 import {
-  fetchRealtimeAuto,
   fetchSingleFundgz,
-  fetchFundBasicInfo,
   buildResults,
   fetchNoEstimateFunds
 } from '../api/funds'
@@ -59,13 +57,12 @@ export function useFunds() {
     error.value = null
 
     try {
-      // 并行获取基本信息和批量数据
-      const [basicInfo, { batchMap, missing }] = await Promise.all([
-        fetchFundBasicInfo(codes).catch(() => ({})),
-        fetchRealtimeAuto(codes, mode)
-      ])
+      // 已移除 FundMNFInfo 接口调用，所有代码视为需要通过 fundgz 补齐（missing）
+      const basicInfo = {}
+      const batchMap = {}
+      const missing = [...codes]
 
-      // 构建初始结果（有估值的基金）
+      // 构建初始结果（有估值的基金，此处全空）
       const { results, noEstimateCodes } = buildResults(codes, batchMap)
 
       // 立即更新名称缓存（从 basicInfo）

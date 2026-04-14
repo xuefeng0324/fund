@@ -33,79 +33,6 @@ function todayStr() {
 // ===== 核心数据获取函数 =====
 
 /**
- * 统一请求东财 FundMNFInfo 接口（带代理和超时回退）
- */
-function requestFundMNFInfo(codes, pageSize = 200) {
-  const targetUrl =
-    'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
-    `?pageIndex=1&pageSize=${pageSize}&plat=Android&appType=ttjj&product=EFund&Version=1` +
-    '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(','))
-
-  // 使用 Cloudflare Worker 代理
-  const proxyUrl = `https://fund.mail-to-lyl3052.workers.dev/?url=${encodeURIComponent(targetUrl)}`
-
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 3000)
-
-  return fetch(proxyUrl, { signal: controller.signal })
-    .then(r => {
-      clearTimeout(timeoutId)
-      if (!r.ok) throw new Error(`Proxy error: ${r.status}`)
-      return r.json()
-    })
-    .catch(err => {
-      clearTimeout(timeoutId)
-      console.warn('Worker 代理请求超时或失败，自动回退到直连模式:', err.message)
-      // 如果代理超时或被墙，自动回退到原生直连请求（不带自定义 User-Agent）
-      return fetch(targetUrl).then(r => r.json())
-    })
-}
-
-/**
- * 批量获取基金实时估值
- *
- * 使用东财 FundMNFInfo 接口，一次请求最多 200 只基金
- */
-export function fetchRealtimeBatch(codes) {
-  if (!codes || !codes.length) return Promise.resolve({})
-
-  // 如果超过 200 只，分批并行请求
-  const batchSize = 200
-  if (codes.length > batchSize) {
-    const batches = []
-    for (let i = 0; i < codes.length; i += batchSize) {
-      batches.push(codes.slice(i, i + batchSize))
-    }
-    return Promise.all(batches.map(batch => fetchSingleBatch(batch)))
-      .then(results => Object.assign({}, ...results))
-  }
-
-  return fetchSingleBatch(codes)
-}
-
-function fetchSingleBatch(codes) {
-  return requestFundMNFInfo(codes, 200)
-    .then(data => {
-      const map = {}
-      const datas = (data && data.Datas) || []
-      datas.forEach(item => {
-        if (!item || !item.FCODE) return
-        map[item.FCODE] = {
-          FCODE: item.FCODE,
-          SHORTNAME: item.SHORTNAME || '',
-          GSZ: safeFloat(item.GSZ),
-          GSZZL: safeFloat(item.GSZZL),
-          DWJZ: safeFloat(item.NAV),
-          GZTIME: item.GZTIME || '',
-          PDATE: item.PDATE || ''
-        }
-      })
-      return map
-    })
-    .catch(() => ({}))
-}
-
-/**
  * 获取单只基金估值（fundgz.1234567 接口）
  *
  * 使用 JSONP 方式，支持并发请求
@@ -194,40 +121,6 @@ export function fetchSingleFundgz(code) {
     requestQueue.push({ code, resolve, reject })
     processQueue()
   })
-}
-
-/**
- * 自动获取基金实时估值（批量 + 单只补齐）
- *
- * 返回批量结果，缺失基金的 fundgz 请求列表
- */
-export async function fetchRealtimeAuto(codes, mode = 'auto') {
-  const batchMap = await fetchRealtimeBatch(codes)
-  const missing = []
-  codes.forEach(c => {
-    const info = batchMap[c]
-    if (!info || info.GSZ == null) missing.push(c)
-  })
-  return { batchMap, missing }
-}
-
-/**
- * 获取基金基本信息（名称等）
- */
-export function fetchFundBasicInfo(codes) {
-  if (!codes || !codes.length) return Promise.resolve({})
-
-  return requestFundMNFInfo(codes, codes.length)
-    .then(data => {
-      const map = {}
-      const datas = (data && data.Datas) || []
-      datas.forEach(item => {
-        if (!item || !item.FCODE) return
-        map[item.FCODE] = item.SHORTNAME || ''
-      })
-      return map
-    })
-    .catch(() => ({}))
 }
 
 export function getLastTradingChange(code) {
