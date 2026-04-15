@@ -92,7 +92,7 @@ fund/
 ├── DESIGN.md                     # 设计规范文档
 ├── DATA_SOURCES.md                # 数据来源与字段计算文档
 ├── changelog/                    # 变更日志
-│   └── YYYY-MM-DD-变更标题.md    # 按日期记录变更
+│   └── YYYY-MM-DD-v版本-变更标题.md    # 按日期-版本-变更信息记录
 ├── dist/                         # 构建输出
 ├── package.json
 ├── vite.config.js
