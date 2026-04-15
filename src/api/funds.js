@@ -195,10 +195,20 @@ export async function fetchNoEstimateFunds(noEstimateCodes, basicInfo = {}) {
 }
 
 /**
+ * pingzhongdata 请求队列
+ *
+ * 由于 pingzhongdata 使用全局变量 Data_netWorthTrend 和 fS_name，
+ * 并发请求会导致竞态条件。使用请求队列确保同一时间只有一个请求执行。
+ */
+const pingzhongdataQueue = []
+let isProcessingPingzhongdata = false
+const PINGZHONGDATA_DELAY = 100  // 请求间隔 100ms
+
+/**
  * 单次获取 pingzhongdata 净值趋势数据
  *
  * 注意：pingzhongdata 接口不支持 CORS，需要用 script 标签加载
- * 脚本会设置全局变量 Data_netWorthTrend
+ * 脚本会设置全局变量 Data_netWorthTrend 和 fS_name
  */
 function fetchPingzhongdataOnce(code) {
   return new Promise((resolve, reject) => {
@@ -213,8 +223,8 @@ function fetchPingzhongdataOnce(code) {
 
     function cleanup() {
       // 清理全局变量
-      try { delete window.fS_name } catch (e) {}
       try { delete window.Data_netWorthTrend } catch (e) {}
+      try { delete window.fS_name } catch (e) {}
       if (script.parentNode) {
         document.head.removeChild(script)
       }
@@ -223,9 +233,9 @@ function fetchPingzhongdataOnce(code) {
     script.onload = () => {
       clearTimeout(timer)
       const trend = window.Data_netWorthTrend || []
-      const name = window.fS_name || ''  // 先保存 name
+      const name = window.fS_name || ''
       resolve({ trend, name })
-      cleanup()  // cleanup 放在 resolve 之后
+      cleanup()
     }
 
     script.onerror = () => {
@@ -239,32 +249,69 @@ function fetchPingzhongdataOnce(code) {
 }
 
 /**
- * 获取 pingzhongdata 净值趋势数据（带重试策略）
+ * 处理 pingzhongdata 请求队列（带重试）
+ */
+async function processPingzhongdataQueue() {
+  // 如果已有队列在处理中，新请求会等当前处理完后被处理
+  if (isProcessingPingzhongdata) return
+
+  isProcessingPingzhongdata = true
+
+  while (pingzhongdataQueue.length > 0) {
+    const { code, retries = 3, delay = 100, resolve, reject } = pingzhongdataQueue.shift()
+
+    let lastError = null
+    let success = false
+
+    for (let i = 0; i < retries; i++) {
+      try {
+        const result = await fetchPingzhongdataOnce(code)
+        // 有效数据直接返回
+        if (result.trend && result.trend.length >= 10) {
+          resolve(result)
+          success = true
+          break
+        }
+        // 数据无效，等待后重试
+        lastError = new Error('insufficient data')
+        if (i < retries - 1) {
+          await new Promise(r => setTimeout(r, delay))
+        }
+      } catch (e) {
+        lastError = e
+        // 请求失败，等待后重试
+        if (i < retries - 1) {
+          await new Promise(r => setTimeout(r, delay))
+        }
+      }
+    }
+
+    // 所有重试都失败，拒绝 Promise
+    if (!success) {
+      reject(lastError || new Error('all retries failed'))
+    }
+
+    // 处理完一个请求后，短暂延迟再处理下一个
+    // 如果队列还有新请求，继续处理
+    if (pingzhongdataQueue.length > 0) {
+      await new Promise(r => setTimeout(r, PINGZHONGDATA_DELAY))
+    }
+  }
+
+  isProcessingPingzhongdata = false
+}
+
+/**
+ * 获取 pingzhongdata 净值趋势数据（带请求队列）
  *
  * @param {string} code - 基金代码
  * @param {number} retries - 重试次数（默认3次）
  * @param {number} delay - 重试间隔（默认100ms）
  * @returns {Promise<{trend: Array, name: string}>}
  */
-export async function fetchPingzhongdata(code, retries = 3, delay = 100) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const result = await fetchPingzhongdataOnce(code)
-      // 如果获取到有效数据，返回
-      if (result.trend && result.trend.length >= 10) {
-        return result
-      }
-      // 数据无效，等待后重试
-      if (i < retries - 1) {
-        await new Promise(r => setTimeout(r, delay))
-      }
-    } catch (e) {
-      // 请求失败，等待后重试
-      if (i < retries - 1) {
-        await new Promise(r => setTimeout(r, delay))
-      }
-    }
-  }
-  // 所有重试都失败，返回空数据
-  return { trend: [], name: '' }
+export function fetchPingzhongdata(code, retries = 3, delay = 100) {
+  return new Promise((resolve, reject) => {
+    pingzhongdataQueue.push({ code, retries, delay, resolve, reject })
+    processPingzhongdataQueue()
+  })
 }
