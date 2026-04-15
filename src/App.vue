@@ -71,7 +71,7 @@ const indexStripOpacity = ref(1)
 let ticking = false
 let rafId = null
 const stickyHeaderEl = ref(null)
-const fundTableEl = ref(null)
+const toolbarEl = ref(null)
 
 // 自动刷新定时器
 let refreshTimer = null
@@ -93,12 +93,14 @@ function getFadeDistance() {
 
 // 计算并更新 IndexStrip opacity
 function calculateOpacity() {
-  if (!stickyHeaderEl.value || !fundTableEl.value) return
+  if (!stickyHeaderEl.value || !toolbarEl.value) return
 
-  const headerBottom = stickyHeaderEl.value.getBoundingClientRect().bottom
-  const tableTop = fundTableEl.value.getBoundingClientRect().top
+  // IndexStrip 完全透明的条件：toolbar 上沿 <= sticky-header 中 header 的下沿
+  // 即搜索框滚动到"基金监控"标题底部时，指数数据完全不可见
+  const headerBottom = stickyHeaderEl.value.querySelector('.header-menu').getBoundingClientRect().bottom
+  const toolbarTop = toolbarEl.value.getBoundingClientRect().top
 
-  const distance = tableTop - headerBottom
+  const distance = toolbarTop - headerBottom
   const fadeDistance = getFadeDistance()
 
   // 进度映射: distance 从 fadeDistance 到 0，progress 从 1 到 0
@@ -282,7 +284,7 @@ onMounted(async () => {
   // --- 滚动透明化初始化 ---
   // 获取元素引用
   stickyHeaderEl.value = document.querySelector('.sticky-header')
-  fundTableEl.value = document.querySelector('.fund-section')
+  toolbarEl.value = document.querySelector('.toolbar')
 
   // 初始化 opacity（当前滚动位置）
   calculateOpacity()
