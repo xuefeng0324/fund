@@ -53,6 +53,9 @@ export function useFunds() {
     loading.value = true
     error.value = null
 
+    // 刷新前先清空表格数据
+    funds.value = []
+
     try {
       // 所有代码都需要通过 fundgz 获取
       const missing = [...codes]
