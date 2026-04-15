@@ -225,7 +225,6 @@ export async function fetchNoEstimateFunds(noEstimateCodes, basicInfo = {}) {
  */
 const pingzhongdataQueue = []
 let isProcessingPingzhongdata = false
-const PINGZHONGDATA_DELAY = 100  // 请求间隔 100ms
 
 /**
  * 单次获取 pingzhongdata 净值趋势数据
@@ -312,12 +311,6 @@ async function processPingzhongdataQueue() {
     // 所有重试都失败，拒绝 Promise
     if (!success) {
       reject(lastError || new Error('all retries failed'))
-    }
-
-    // 处理完一个请求后，短暂延迟再处理下一个
-    // 如果队列还有新请求，继续处理
-    if (pingzhongdataQueue.length > 0) {
-      await new Promise(r => setTimeout(r, PINGZHONGDATA_DELAY))
     }
   }
 
