@@ -42,13 +42,18 @@
 
     <el-empty v-else description="暂无基金，请添加" :image-size="80" />
 
+    <div v-if="loading" class="loading-mask">
+      <el-icon class="loading-spinner"><Loading /></el-icon>
+      <span>加载中...</span>
+    </div>
+
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="close">取消</el-button>
+        <el-button @click="close" :disabled="loading">取消</el-button>
         <el-button
           type="primary"
           :loading="saving"
-          :disabled="managedCodes.length === 0"
+          :disabled="managedCodes.length === 0 || loading"
           @click="save"
         >
           {{ saving ? '保存中' : '保存' }}
@@ -59,8 +64,8 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
-import { CircleCloseFilled } from '@element-plus/icons-vue'
+import { ref, watch } from 'vue'
+import { CircleCloseFilled, Loading } from '@element-plus/icons-vue'
 import { getFileContent, updateFile } from '../api/github'
 import { ElMessage } from 'element-plus'
 
@@ -77,6 +82,7 @@ const dialogVisible = defineModel({ default: true })
 const newCode = ref('')
 const adding = ref(false)
 const saving = ref(false)
+const loading = ref(false)
 const managedCodes = ref([])
 
 const groupsSha = ref('')
@@ -92,6 +98,7 @@ watch(dialogVisible, (val) => {
 })
 
 async function loadAllConfig() {
+  loading.value = true
   try {
     const groups = await getFileContent('public/config/fund_groups.json')
     fundGroups.value = groups.content
@@ -99,6 +106,8 @@ async function loadAllConfig() {
     managedCodes.value = groups.content[props.keyValue] || []
   } catch (e) {
     ElMessage.error('加载配置失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -173,11 +182,47 @@ function handleClosed() {
   emit('close')
 }
 
-onMounted(loadAllConfig)
-watch(() => props.keyValue, loadAllConfig)
+// 监听 keyValue 变化，重新加载对应分组的基金
+watch(() => props.keyValue, (newKey) => {
+  if (dialogVisible.value && newKey) {
+    managedCodes.value = fundGroups.value[newKey] || []
+  }
+})
 </script>
 
 <style scoped>
+.loading-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 10;
+  border-radius: 12px;
+}
+
+.loading-spinner {
+  font-size: 32px;
+  color: #0052ff;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loading-mask span {
+  font-size: 14px;
+  color: #5b616e;
+}
+
 .add-fund-section {
   margin-bottom: 20px;
 }

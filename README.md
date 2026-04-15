@@ -6,6 +6,7 @@
 
 | 版本 | 发布日期 | 说明 |
 |------|----------|------|
+| v2.4.5 | 2026-04-15 | 修复弹窗打开时 GitHub API 多次请求问题，添加 Loading 加载提示 |
 | v2.4.4 | 2026-04-15 | IndexStrip 透明化触发点优化：搜索框滚动到"基金监控"标题底部时指数数据完全透明 |
 | v2.4.3 | 2026-04-14 | 移除不稳定且存在 CORS 限制的 FundMNFInfo 接口，完全使用 JSONP 方案 |
 | v2.4.2 | 2026-04-14 | FundMNFInfo 接口添加移动端 User-Agent |
@@ -265,6 +266,19 @@ npm run build
 ## 更新日志
 
 详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期-版本-变更信息记录。
+
+### v2.4.5 (2026-04-15)
+
+**Bug 修复 — 修复弹窗打开时 GitHub API 多次请求问题**
+
+- 移除 `FundManageModal` 组件中的 `onMounted` 自动加载，避免页面加载时立即触发 GitHub API 请求
+- 保留 `dialogVisible` watcher 作为唯一的配置加载触发点
+- 优化 `keyValue` watcher，仅在弹窗打开时更新 `managedCodes`
+
+**体验优化 — 添加加载状态提示**
+
+- 加载配置时显示 Loading 遮罩层，旋转图标 + "加载中..." 文字
+- 加载过程中禁用底部按钮，防止误操作
 
 ### v2.4.4 (2026-04-15)
 
