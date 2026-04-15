@@ -49,7 +49,27 @@ const REQUEST_DELAY = 150 // 每个请求间隔 150ms，避免频率限制
 
 // 全局回调处理所有响应
 window.jsonpgz = (data) => {
-  if (!data || !data.fundcode) return
+  if (!data || !data.fundcode) {
+    // jsonpgz(); 空数据调用，没有 code 信息
+    // 假设是等待队列中最早的请求
+    const firstEntry = pendingRequests.entries().next()
+    if (!firstEntry.done) {
+      const [code, pending] = firstEntry.value
+      clearTimeout(pending.timer)
+      pendingRequests.delete(code)
+      // 返回空数据，resolve 而不是 reject，让调用方检查 GSZ/GSZZL
+      pending.resolve({
+        FCODE: code,
+        SHORTNAME: '',
+        GSZ: null,
+        GSZZL: null,
+        DWJZ: null,
+        GZTIME: ''
+      })
+    }
+    return
+  }
+
   const code = data.fundcode
   const pending = pendingRequests.get(code)
   if (!pending) return
