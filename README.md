@@ -6,6 +6,7 @@
 
 | 版本 | 发布日期 | 说明 |
 |------|----------|------|
+| v2.4.8 | 2026-04-15 | 引入 dayjs 处理日期，修复 pingzhongdata 时区转换问题 |
 | v2.4.7 | 2026-04-15 | 优化 fundgz 空数据判断，空数据时跳过重试直接调用 pingzhongdata |
 | v2.4.6 | 2026-04-15 | 优化 pingzhongdata 请求队列，解决并发请求竞态条件 |
 | v2.4.5 | 2026-04-15 | 修复弹窗打开时 GitHub API 多次请求问题，添加 Loading 加载提示 |
@@ -276,6 +277,14 @@ npm run build
 - 新增 `pingzhongdataQueue` 请求队列，确保同一时间只有一个请求执行
 - 解决并发请求时全局变量 `window.Data_netWorthTrend` 竞态条件问题
 - 保留原有的 3 次重试策略和 100ms 重试间隔
+
+### v2.4.8 (2026-04-15)
+
+**依赖更新 — 引入 dayjs 处理日期**
+
+- 引入 dayjs 替代原生 Date 处理时间戳和日期
+- 修复 `getLastTradingChange` 时区转换问题，`toISOString()` 会产生 UTC 偏差
+- 使用 `dayjs(timestamp).format('YYYY-MM-DD')` 自动处理本地时区
 
 ### v2.4.7 (2026-04-15)
 

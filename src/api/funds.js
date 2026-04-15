@@ -7,6 +7,8 @@
  * 3. 获取基金上一交易日涨跌数据（pingzhongdata 接口）
  */
 
+import dayjs from 'dayjs'
+
 const TIMEOUT_MS = 15000
 
 // ===== 工具函数 =====
@@ -150,8 +152,8 @@ export function getLastTradingChange(code) {
     if (!trend || !trend.length) return { change: null, date: '--', name: '' }
     const last = trend[trend.length - 1]
     const change = safeFloat(last.equityReturn)
-    let dateStr = '--'
-    try { dateStr = new Date(last.x).toISOString().slice(0, 10) } catch (e) {}
+    // 使用 dayjs 解析时间戳/日期，自动处理时区
+    const dateStr = last.x ? dayjs(last.x).format('YYYY-MM-DD') : '--'
     // 基金名称通过 fS_name 获取
     const name = (result && result.name) ? result.name : ''
     return { change, date: dateStr, name: name || window.fS_name || '' }
