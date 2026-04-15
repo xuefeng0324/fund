@@ -89,6 +89,7 @@ fund/
 │   │   └── fund_groups.json     # 分组配置（包含所有基金代码）
 │   └── favicon.svg
 ├── DESIGN.md                     # 设计规范文档
+├── DATA_SOURCES.md                # 数据来源与字段计算文档
 ├── changelog/                    # 变更日志
 │   └── YYYY-MM-DD-变更标题.md    # 按日期记录变更
 ├── dist/                         # 构建输出
@@ -194,8 +195,11 @@ npm run preview
 | 单只估值补齐 | `fundgz.1234567.com.cn` | JSONP |
 | 指数快照 | `push2.eastmoney.com` | JSONP |
 | 净值数据 | `fund.eastmoney.com/pingzhongdata` | script 标签 |
+| 配置存储 | `api.github.com` | REST API |
 
 > **注意**：所有接口使用 JSONP 或 script 标签加载方式绕过 CORS 限制。
+>
+> **详细文档**：完整的 API 字段说明、计算逻辑、重试策略等请查看 [DATA_SOURCES.md](./DATA_SOURCES.md)。
 
 ## 部署
 
