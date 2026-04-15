@@ -17,19 +17,11 @@
         @search="searchKeyword = $event"
       />
       <FundTable
-        title="实时估值基金"
+        title="基金实时估值"
         :funds="filteredNormalFunds"
         :advice="adviceData"
         :loading="loading"
         :advice-loading="adviceLoading"
-      />
-      <FundTable
-        title="上一交易日涨跌"
-        :funds="filteredSpecialFunds"
-        :advice="adviceData"
-        :loading="loading"
-        :advice-loading="adviceLoading"
-        style="margin-top: 16px;"
       />
     </div>
     <FundManageModal
@@ -143,24 +135,11 @@ const { indexData, loadIndex } = useIndex()
 const { adviceData, loadAdvice } = useAdvice()
 const { validateKey: authValidateKey } = useAuth()
 
-// 计算属性
-const normalFunds = computed(() => funds.value.filter(f => f.GSZ != null))
-const specialFunds = computed(() => funds.value.filter(f => f.GSZ == null))
-
 // 搜索过滤
 const filteredNormalFunds = computed(() => {
-  if (!searchKeyword.value) return normalFunds.value
+  if (!searchKeyword.value) return funds.value
   const kw = searchKeyword.value.toLowerCase()
-  return normalFunds.value.filter(f =>
-    f.FCODE?.toLowerCase().includes(kw) ||
-    f.SHORTNAME?.toLowerCase().includes(kw)
-  )
-})
-
-const filteredSpecialFunds = computed(() => {
-  if (!searchKeyword.value) return specialFunds.value
-  const kw = searchKeyword.value.toLowerCase()
-  return specialFunds.value.filter(f =>
+  return funds.value.filter(f =>
     f.FCODE?.toLowerCase().includes(kw) ||
     f.SHORTNAME?.toLowerCase().includes(kw)
   )
