@@ -149,16 +149,17 @@ export function getLastTradingChange(code) {
   return fetchPingzhongdata(code).then(result => {
     // result 可能是数组或 { trend, name } 对象
     const trend = (result && result.trend) ? result.trend : (Array.isArray(result) ? result : [])
-    if (!trend || !trend.length) return { change: null, date: '--', name: '' }
+    if (!trend || !trend.length) return { change: null, date: '--', name: '', nav: null }
     const last = trend[trend.length - 1]
     const change = safeFloat(last.equityReturn)
+    const nav = safeFloat(last.y)
     // 使用 dayjs 解析时间戳/日期，自动处理时区
     const dateStr = last.x ? dayjs(last.x).format('YYYY-MM-DD') : '--'
     // 基金名称通过 fS_name 获取
     const name = (result && result.name) ? result.name : ''
-    return { change, date: dateStr, name: name || window.fS_name || '' }
+    return { change, date: dateStr, name: name || window.fS_name || '', nav }
   }).catch(e => {
-    return { change: null, date: '--', name: '' }
+    return { change: null, date: '--', name: '', nav: null }
   })
 }
 

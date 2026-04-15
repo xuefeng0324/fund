@@ -96,8 +96,8 @@ export function useFunds() {
                   const fundData = {
                     FCODE: code,
                     SHORTNAME: lcd.name || '',
-                    GSZ: null,
-                    GSZZL: null,
+                    GSZ: lcd.nav,  // 使用 pingzhongdata 的单位净值
+                    GSZZL: lcd.change,
                     GZTIME: lcd.date,
                     LAST_CHG: lcd.change
                   }
