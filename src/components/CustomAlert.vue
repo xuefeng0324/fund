@@ -77,7 +77,7 @@ function alert(msg, title = '提示') {
 .custom-alert-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(10, 11, 13, 0.6);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -87,7 +87,7 @@ function alert(msg, title = '提示') {
 
 .custom-alert-box {
   background: #fff;
-  border-radius: 12px;
+  border-radius: 24px;
   padding: 24px;
   min-width: 320px;
   max-width: 480px;
@@ -109,13 +109,13 @@ function alert(msg, title = '提示') {
 .custom-alert-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: #0a0b0d;
   margin-bottom: 12px;
 }
 
 .custom-alert-message {
   font-size: 14px;
-  color: #475569;
+  color: #5b616e;
   line-height: 1.6;
   margin-bottom: 20px;
 }
@@ -127,35 +127,35 @@ function alert(msg, title = '提示') {
 }
 
 .custom-alert-button {
-  padding: 8px 20px;
-  border-radius: 6px;
+  padding: 10px 24px;
+  border-radius: 56px;
   border: none;
-  background: #3b82f6;
+  background: #0052ff;
   color: #fff;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   transition: all 0.2s;
 }
 
 .custom-alert-button:hover {
-  background: #2563eb;
+  background: #578bfa;
 }
 
 .custom-alert-cancel {
-  padding: 8px 20px;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
+  padding: 10px 24px;
+  border-radius: 56px;
+  border: 1px solid rgba(91, 97, 110, 0.2);
   background: #fff;
-  color: #475569;
+  color: #5b616e;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   transition: all 0.2s;
 }
 
 .custom-alert-cancel:hover {
-  background: #f1f5f9;
+  background: #eef0f3;
 }
 
 @media (max-width: 480px) {
@@ -164,7 +164,7 @@ function alert(msg, title = '提示') {
     width: 85%;
     max-width: 85%;
     padding: 20px;
-    border-radius: 12px;
+    border-radius: 16px;
   }
 
   .custom-alert-title {
@@ -185,8 +185,9 @@ function alert(msg, title = '提示') {
   .custom-alert-button,
   .custom-alert-cancel {
     width: 100%;
-    padding: 12px;
+    padding: 14px 24px;
     font-size: 14px;
+    border-radius: 56px;
   }
 }
 </style>

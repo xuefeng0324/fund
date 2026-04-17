@@ -1,4 +1,4 @@
-/* 基础样式 - 浅色撞色 */
+/* 基础样式 - Coinbase 风格 */
 * {
   margin: 0;
   padding: 0;
@@ -8,9 +8,9 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   font-size: 14px;
-  background: #f8f9fa;
+  background: #ffffff;
   min-height: 100vh;
-  color: #1a1a1a;
+  color: #0a0b0d;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -26,19 +26,19 @@ header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e8e8e8;
+  border-bottom: 1px solid rgba(91, 97, 110, 0.2);
 }
 
 header h1 {
   font-size: 20px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #0a0b0d;
   letter-spacing: -0.3px;
 }
 
 header .subtitle {
   font-size: 13px;
-  color: #4f46e5;
+  color: #0052ff;
   margin-top: 4px;
   font-weight: 500;
 }
@@ -48,6 +48,7 @@ header .subtitle {
   padding: 32px 40px;
   max-width: 1400px;
   margin: 0 auto;
+  background: #ffffff;
 }
 
 /* 标题 */
@@ -56,7 +57,7 @@ header .subtitle {
   margin-bottom: 16px;
   font-weight: 700;
   font-size: 16px;
-  color: #1a1a1a;
+  color: #0a0b0d;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -66,7 +67,7 @@ header .subtitle {
   content: '';
   width: 4px;
   height: 20px;
-  background: #4f46e5;
+  background: #0052ff;
   border-radius: 2px;
 }
 
@@ -76,22 +77,22 @@ header .subtitle {
   border-collapse: separate;
   border-spacing: 0;
   background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  border: 1px solid rgba(91, 97, 110, 0.2);
+  border-radius: 16px;
   overflow: hidden;
   font-size: 14px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
 }
 
 .fund-table th,
 .fund-table td {
   padding: 14px 18px;
   text-align: left;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid rgba(91, 97, 110, 0.2);
 }
 
 .fund-table th {
-  background: #4f46e5;
+  background: #0052ff;
   font-weight: 600;
   color: #fff;
   font-size: 13px;
@@ -103,7 +104,7 @@ header .subtitle {
 }
 
 .fund-table th:hover {
-  background: #4338ca;
+  background: #578bfa;
 }
 
 .fund-table tbody tr {
@@ -111,7 +112,7 @@ header .subtitle {
 }
 
 .fund-table tbody tr:hover {
-  background: #f5f7ff;
+  background: #eef0f3;
 }
 
 .fund-table tbody tr:last-child td {
@@ -131,9 +132,9 @@ header .subtitle {
   font-weight: 700;
 }
 
-/* 买入高亮 - 靛蓝 */
+/* 买入高亮 - Coinbase Blue */
 .advice-buy {
-  color: #4f46e5 !important;
+  color: #0052ff !important;
   font-weight: 700;
 }
 
@@ -141,7 +142,8 @@ header .subtitle {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(10, 11, 13, 0.6);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -150,7 +152,7 @@ header .subtitle {
 
 .modal-content {
   background: #fff;
-  border-radius: 16px;
+  border-radius: 24px;
   padding: 32px;
   max-width: 440px;
   width: 90%;
@@ -163,7 +165,7 @@ header .subtitle {
   font-size: 18px;
   font-weight: 700;
   margin-bottom: 20px;
-  color: #1a1a1a;
+  color: #0a0b0d;
 }
 
 .modal-actions {
@@ -180,7 +182,7 @@ header .subtitle {
   right: 24px;
   padding: 16px 24px;
   background: #fff;
-  border-radius: 12px;
+  border-radius: 16px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
   z-index: 2000;
   animation: slideIn 0.25s ease-out;
@@ -206,17 +208,17 @@ header .subtitle {
   }
 }
 
-/* Element Plus 适配 */
+/* Element Plus 适配 - Coinbase 风格 */
 .el-table {
-  --el-table-border-color: #e5e7eb;
-  --el-table-header-bg-color: #4f46e5;
+  --el-table-border-color: rgba(91, 97, 110, 0.2);
+  --el-table-header-bg-color: #0052ff;
   --el-table-header-text-color: #fff;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
 }
 
 .el-table th.el-table__cell {
-  background: #4f46e5 !important;
+  background: #0052ff !important;
   font-weight: 600;
   font-size: 13px;
   text-transform: uppercase;
@@ -228,18 +230,32 @@ header .subtitle {
 }
 
 .el-button--primary {
-  --el-button-bg-color: #4f46e5;
-  --el-button-border-color: #4f46e5;
-  --el-button-hover-bg-color: #4338ca;
-  --el-button-hover-border-color: #4338ca;
+  --el-button-bg-color: #0052ff;
+  --el-button-border-color: #0052ff;
+  --el-button-hover-bg-color: #578bfa;
+  --el-button-hover-border-color: #578bfa;
+  border-radius: 56px;
+}
+
+.el-button {
+  border-radius: 56px;
 }
 
 .el-dialog {
-  border-radius: 16px;
+  border-radius: 24px;
 }
 
 .el-input__wrapper {
-  border-radius: 8px;
+  border-radius: 56px;
+}
+
+.el-card {
+  border-radius: 16px;
+  border: 1px solid rgba(91, 97, 110, 0.2);
+}
+
+.el-tag {
+  border-radius: 56px;
 }
 
 /* 响应式 */
@@ -263,7 +279,7 @@ header .subtitle {
   }
 
   .fund-table {
-    border-radius: 8px;
+    border-radius: 12px;
   }
 
   .sub-section-title {

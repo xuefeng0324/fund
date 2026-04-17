@@ -86,15 +86,17 @@ export function groupWeeklyLast(daily) {
   for (const [date, close] of daily) {
     try {
       const d = new Date(date)
-      // 计算 ISO 周数
-      const jan4 = new Date(d.getFullYear(), 0, 4)
-      const week = Math.ceil(((d - jan4) / 86400000 + jan4.getDay() + 1) / 7)
-      const key = `${d.getFullYear()}-W${week}`
-      buckets[key] = close  // 后出现的会覆盖，即取最后一天
+      // 标准 ISO 周算法：ISO 周四所在的年 + ISO 周数
+      const thu = new Date(d)
+      thu.setDate(thu.getDate() + 3 - ((thu.getDay() + 6) % 7))
+      const isoYear = thu.getFullYear()
+      const jan1 = new Date(isoYear, 0, 1)
+      const isoWeek = Math.ceil(((thu - jan1) / 86400000 + 1) / 7)
+      const key = `${isoYear}-W${String(isoWeek).padStart(2, '0')}`
+      buckets[key] = close
     } catch (e) {}
   }
 
-  // 按时间排序后返回净值序列
   return Object.entries(buckets)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, close]) => close)

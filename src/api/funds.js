@@ -7,6 +7,8 @@
  * 3. 获取基金上一交易日涨跌数据（pingzhongdata 接口）
  */
 
+import dayjs from 'dayjs'
+
 const TIMEOUT_MS = 15000
 
 // ===== 工具函数 =====
@@ -33,56 +35,6 @@ function todayStr() {
 // ===== 核心数据获取函数 =====
 
 /**
- * 批量获取基金实时估值
- *
- * 使用东财 FundMNFInfo 接口，一次请求最多 200 只基金
- */
-export function fetchRealtimeBatch(codes) {
-  if (!codes || !codes.length) return Promise.resolve({})
-
-  // 如果超过 200 只，分批并行请求
-  const batchSize = 200
-  if (codes.length > batchSize) {
-    const batches = []
-    for (let i = 0; i < codes.length; i += batchSize) {
-      batches.push(codes.slice(i, i + batchSize))
-    }
-    return Promise.all(batches.map(batch => fetchSingleBatch(batch)))
-      .then(results => Object.assign({}, ...results))
-  }
-
-  return fetchSingleBatch(codes)
-}
-
-function fetchSingleBatch(codes) {
-  const url =
-    'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
-    '?pageIndex=1&pageSize=200&plat=Android&appType=ttjj&product=EFund&Version=1' +
-    '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(','))
-
-  return fetch(url)
-    .then(r => r.json())
-    .then(data => {
-      const map = {}
-      const datas = (data && data.Datas) || []
-      datas.forEach(item => {
-        if (!item || !item.FCODE) return
-        map[item.FCODE] = {
-          FCODE: item.FCODE,
-          SHORTNAME: item.SHORTNAME || '',
-          GSZ: safeFloat(item.GSZ),
-          GSZZL: safeFloat(item.GSZZL),
-          DWJZ: safeFloat(item.NAV),
-          GZTIME: item.GZTIME || '',
-          PDATE: item.PDATE || ''
-        }
-      })
-      return map
-    })
-    .catch(() => ({}))
-}
-
-/**
  * 获取单只基金估值（fundgz.1234567 接口）
  *
  * 使用 JSONP 方式，支持并发请求
@@ -95,11 +47,31 @@ const pendingRequests = new Map()
 // 请求队列和延迟控制
 const requestQueue = []
 let isProcessingQueue = false
-const REQUEST_DELAY = 100 // 每个请求间隔 100ms，避免频率限制
+const REQUEST_DELAY = 150 // 每个请求间隔 150ms，避免频率限制
 
 // 全局回调处理所有响应
 window.jsonpgz = (data) => {
-  if (!data || !data.fundcode) return
+  if (!data || !data.fundcode) {
+    // jsonpgz(); 空数据调用，没有 code 信息
+    // 假设是等待队列中最早的请求
+    const firstEntry = pendingRequests.entries().next()
+    if (!firstEntry.done) {
+      const [code, pending] = firstEntry.value
+      clearTimeout(pending.timer)
+      pendingRequests.delete(code)
+      // 返回空数据，resolve 而不是 reject，让调用方检查 GSZ/GSZZL
+      pending.resolve({
+        FCODE: code,
+        SHORTNAME: '',
+        GSZ: null,
+        GSZZL: null,
+        DWJZ: null,
+        GZTIME: ''
+      })
+    }
+    return
+  }
+
   const code = data.fundcode
   const pending = pendingRequests.get(code)
   if (!pending) return
@@ -173,59 +145,21 @@ export function fetchSingleFundgz(code) {
   })
 }
 
-/**
- * 自动获取基金实时估值（批量 + 单只补齐）
- *
- * 返回批量结果，缺失基金的 fundgz 请求列表
- */
-export async function fetchRealtimeAuto(codes, mode = 'auto') {
-  const batchMap = await fetchRealtimeBatch(codes)
-  const missing = []
-  codes.forEach(c => {
-    const info = batchMap[c]
-    if (!info || info.GSZ == null) missing.push(c)
-  })
-  return { batchMap, missing }
-}
-
-/**
- * 获取基金基本信息（名称等）
- */
-export function fetchFundBasicInfo(codes) {
-  if (!codes || !codes.length) return Promise.resolve({})
-
-  const url = 'https://fundmobapi.eastmoney.com/FundMNewApi/FundMNFInfo' +
-    '?pageIndex=1&pageSize=' + codes.length + '&plat=Android&appType=ttjj&product=EFund&Version=1' +
-    '&deviceid=Wap&Fcodes=' + encodeURIComponent(codes.join(','))
-
-  return fetch(url)
-    .then(r => r.json())
-    .then(data => {
-      const map = {}
-      const datas = (data && data.Datas) || []
-      datas.forEach(item => {
-        if (!item || !item.FCODE) return
-        map[item.FCODE] = item.SHORTNAME || ''
-      })
-      return map
-    })
-    .catch(() => ({}))
-}
-
 export function getLastTradingChange(code) {
   return fetchPingzhongdata(code).then(result => {
     // result 可能是数组或 { trend, name } 对象
     const trend = (result && result.trend) ? result.trend : (Array.isArray(result) ? result : [])
-    if (!trend || !trend.length) return { change: null, date: '--', name: '' }
+    if (!trend || !trend.length) return { change: null, date: '--', name: '', nav: null }
     const last = trend[trend.length - 1]
     const change = safeFloat(last.equityReturn)
-    let dateStr = '--'
-    try { dateStr = new Date(last.x).toISOString().slice(0, 10) } catch (e) {}
+    const nav = safeFloat(last.y)
+    // 使用 dayjs 解析时间戳/日期，自动处理时区
+    const dateStr = last.x ? dayjs(last.x).format('YYYY-MM-DD') : '--'
     // 基金名称通过 fS_name 获取
     const name = (result && result.name) ? result.name : ''
-    return { change, date: dateStr, name: name || window.fS_name || '' }
+    return { change, date: dateStr, name: name || window.fS_name || '', nav }
   }).catch(e => {
-    return { change: null, date: '--', name: '' }
+    return { change: null, date: '--', name: '', nav: null }
   })
 }
 
@@ -284,10 +218,19 @@ export async function fetchNoEstimateFunds(noEstimateCodes, basicInfo = {}) {
 }
 
 /**
+ * pingzhongdata 请求队列
+ *
+ * 由于 pingzhongdata 使用全局变量 Data_netWorthTrend 和 fS_name，
+ * 并发请求会导致竞态条件。使用请求队列确保同一时间只有一个请求执行。
+ */
+const pingzhongdataQueue = []
+let isProcessingPingzhongdata = false
+
+/**
  * 单次获取 pingzhongdata 净值趋势数据
  *
  * 注意：pingzhongdata 接口不支持 CORS，需要用 script 标签加载
- * 脚本会设置全局变量 Data_netWorthTrend
+ * 脚本会设置全局变量 Data_netWorthTrend 和 fS_name
  */
 function fetchPingzhongdataOnce(code) {
   return new Promise((resolve, reject) => {
@@ -297,15 +240,13 @@ function fetchPingzhongdataOnce(code) {
     }, TIMEOUT_MS)
 
     const script = document.createElement('script')
-    // 开发环境使用代理
-    const isDev = typeof import.meta !== 'undefined' && import.meta.env?.DEV
-    const baseUrl = isDev ? '/api/eastmoney-fund' : 'https://fund.eastmoney.com'
-    script.src = `${baseUrl}/pingzhongdata/${encodeURIComponent(code)}.js?v=${Date.now()}`
+    // 直接请求外部 API（与 GitHub Pages 一致）
+    script.src = `https://fund.eastmoney.com/pingzhongdata/${encodeURIComponent(code)}.js?v=${Date.now()}`
 
     function cleanup() {
       // 清理全局变量
-      try { delete window.fS_name } catch (e) {}
       try { delete window.Data_netWorthTrend } catch (e) {}
+      try { delete window.fS_name } catch (e) {}
       if (script.parentNode) {
         document.head.removeChild(script)
       }
@@ -314,9 +255,9 @@ function fetchPingzhongdataOnce(code) {
     script.onload = () => {
       clearTimeout(timer)
       const trend = window.Data_netWorthTrend || []
-      const name = window.fS_name || ''  // 先保存 name
+      const name = window.fS_name || ''
       resolve({ trend, name })
-      cleanup()  // cleanup 放在 resolve 之后
+      cleanup()
     }
 
     script.onerror = () => {
@@ -330,32 +271,63 @@ function fetchPingzhongdataOnce(code) {
 }
 
 /**
- * 获取 pingzhongdata 净值趋势数据（带重试策略）
+ * 处理 pingzhongdata 请求队列（带重试）
+ */
+async function processPingzhongdataQueue() {
+  // 如果已有队列在处理中，新请求会等当前处理完后被处理
+  if (isProcessingPingzhongdata) return
+
+  isProcessingPingzhongdata = true
+
+  while (pingzhongdataQueue.length > 0) {
+    const { code, retries = 3, delay = 100, resolve, reject } = pingzhongdataQueue.shift()
+
+    let lastError = null
+    let success = false
+
+    for (let i = 0; i < retries; i++) {
+      try {
+        const result = await fetchPingzhongdataOnce(code)
+        // 有效数据直接返回
+        if (result.trend && result.trend.length >= 10) {
+          resolve(result)
+          success = true
+          break
+        }
+        // 数据无效，等待后重试
+        lastError = new Error('insufficient data')
+        if (i < retries - 1) {
+          await new Promise(r => setTimeout(r, delay))
+        }
+      } catch (e) {
+        lastError = e
+        // 请求失败，等待后重试
+        if (i < retries - 1) {
+          await new Promise(r => setTimeout(r, delay))
+        }
+      }
+    }
+
+    // 所有重试都失败，拒绝 Promise
+    if (!success) {
+      reject(lastError || new Error('all retries failed'))
+    }
+  }
+
+  isProcessingPingzhongdata = false
+}
+
+/**
+ * 获取 pingzhongdata 净值趋势数据（带请求队列）
  *
  * @param {string} code - 基金代码
  * @param {number} retries - 重试次数（默认3次）
  * @param {number} delay - 重试间隔（默认100ms）
  * @returns {Promise<{trend: Array, name: string}>}
  */
-export async function fetchPingzhongdata(code, retries = 3, delay = 100) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const result = await fetchPingzhongdataOnce(code)
-      // 如果获取到有效数据，返回
-      if (result.trend && result.trend.length >= 10) {
-        return result
-      }
-      // 数据无效，等待后重试
-      if (i < retries - 1) {
-        await new Promise(r => setTimeout(r, delay))
-      }
-    } catch (e) {
-      // 请求失败，等待后重试
-      if (i < retries - 1) {
-        await new Promise(r => setTimeout(r, delay))
-      }
-    }
-  }
-  // 所有重试都失败，返回空数据
-  return { trend: [], name: '' }
+export function fetchPingzhongdata(code, retries = 3, delay = 100) {
+  return new Promise((resolve, reject) => {
+    pingzhongdataQueue.push({ code, retries, delay, resolve, reject })
+    processPingzhongdataQueue()
+  })
 }

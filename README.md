@@ -6,6 +6,27 @@
 
 | 版本 | 发布日期 | 说明 |
 |------|----------|------|
+| v2.5.0 | 2026-04-18 | 新增基金交易规则同步功能，GitHub Actions 定时同步买入卖出确认日数据 |
+| v2.4.9 | 2026-04-15 | 移除上一交易日涨跌表格，统一显示基金实时估值 |
+| v2.4.8 | 2026-04-15 | 引入 dayjs 处理日期，修复 pingzhongdata 时区转换问题 |
+| v2.4.7 | 2026-04-15 | 优化 fundgz 空数据判断，空数据时跳过重试直接调用 pingzhongdata |
+| v2.4.6 | 2026-04-15 | 优化 pingzhongdata 请求队列，解决并发请求竞态条件 |
+| v2.4.5 | 2026-04-15 | 修复弹窗打开时 GitHub API 多次请求问题，添加 Loading 加载提示 |
+| v2.4.4 | 2026-04-15 | IndexStrip 透明化触发点优化：搜索框滚动到"基金监控"标题底部时指数数据完全透明 |
+| v2.4.3 | 2026-04-14 | 移除不稳定且存在 CORS 限制的 FundMNFInfo 接口，完全使用 JSONP 方案 |
+| v2.4.2 | 2026-04-14 | FundMNFInfo 接口添加移动端 User-Agent |
+| v2.4.1 | 2026-04-14 | 修复指数面板透明后遮挡下方区域点击的问题 |
+| v2.4.0 | 2026-04-10 | IndexStrip 滚动透明化效果：页面下滑时指数区域渐隐，提升视觉体验 |
+| v2.3.1 | 2026-04-09 | 卡片样式优化：基金名称自适应、代码与时间对齐 |
+| v2.3.0 | 2026-04-09 | 全面重构UI为Coinbase设计风格，统一颜色系统、圆角规范 |
+| v2.2.3 | 2026-04-09 | 修复切换视图后管理基金按钮消失的问题 |
+| v2.2.2 | 2026-04-08 | 移除 fund_codes.json，基金代码由 fund_groups.json 合并去重生成 |
+| v2.2.1 | 2026-04-03 | 修复建议逻辑：对齐 Python 脚本，修复 gszzl 未传递、持仓/空仓独立计算、ISO 周算法等问题 |
+| v2.1.15 | 2026-04-03 | 重构管理基金列表页面，修复弹窗无法再次打开的问题 |
+| v2.1.14 | 2026-04-02 | fundgz 补齐添加重试策略 |
+| v2.1.13 | 2026-04-02 | 右上角显示当前时间，移动端指数4行显示 |
+| v2.1.12 | 2026-04-02 | 移除数据来源下拉框，使用auto模式 |
+| v2.1.11 | 2026-04-02 | 加载状态优化、密钥清空修复、无密钥禁用看自己、请求间隔150ms |
 | v2.1.10 | 2026-04-02 | pingzhongdata 重试策略：请求失败时重试3次，间隔100ms |
 | v2.1.9 | 2026-04-02 | 请求间隔优化：历史估值数据添加 100ms 请求间隔；文档：部署分支说明与 README 提交规范 |
 | v2.1.8 | 2026-04-02 | 基金估值即时显示：批量结果先展示，fundgz 结果异步补充 |
@@ -36,6 +57,7 @@
 |------|------|------|
 | Vue 3 | ^3.4.0 | 前端框架 |
 | Vite | ^5.0.0 | 构建工具 |
+| Element Plus | ^2.5.0 | UI 组件库 |
 | Composition API | - | 组合式逻辑复用 |
 
 ## 项目结构
@@ -45,6 +67,8 @@ fund/
 ├── src/                          # 源代码
 │   ├── App.vue                  # 根组件
 │   ├── main.js                  # 入口文件
+│   ├── assets/
+│   │   └── style.css            # 全局样式（Coinbase风格）
 │   ├── components/              # Vue 组件
 │   │   ├── Header.vue           # 顶部导航栏
 │   │   ├── IndexStrip.vue       # 指数卡片条
@@ -68,11 +92,12 @@ fund/
 │       └── storage.js           # localStorage 管理
 ├── public/                       # 静态文件（不打包）
 │   ├── config/
-│   │   ├── fund_codes.json      # 基金代码配置
-│   │   └── fund_groups.json     # 分组配置
+│   │   └── fund_groups.json     # 分组配置（包含所有基金代码）
 │   └── favicon.svg
+├── DESIGN.md                     # 设计规范文档
+├── DATA_SOURCES.md                # 数据来源与字段计算文档
 ├── changelog/                    # 变更日志
-│   └── YYYY-MM-DD-变更标题.md    # 按日期记录变更
+│   └── YYYY-MM-DD-v版本-变更标题.md    # 按日期-版本-变更信息记录
 ├── dist/                         # 构建输出
 ├── package.json
 ├── vite.config.js
@@ -102,14 +127,6 @@ npm run dev
 VITE_GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 ```
 
-开发服务器配置了 API 代理以解决 CORS 问题：
-
-| 代理路径 | 目标域名 | 用途 |
-|----------|----------|------|
-| `/api/eastmoney-fund` | `fund.eastmoney.com` | 净值数据 |
-| `/api/eastmoney-fundmob` | `fundmobapi.eastmoney.com` | 批量估值 |
-| `/api/eastmoney-push` | `push2.eastmoney.com` | 指数快照 |
-
 ### 构建生产版本
 
 ```bash
@@ -124,18 +141,6 @@ npm run preview
 
 ## 配置说明
 
-### 基金代码配置
-
-编辑 `public/config/fund_codes.json`：
-
-```json
-[
-  "001549",
-  "012922",
-  "024195"
-]
-```
-
 ### 分组配置
 
 编辑 `public/config/fund_groups.json`：
@@ -146,6 +151,8 @@ npm run preview
   "lun": ["006328", "008591"]
 }
 ```
+
+所有基金代码由各分组的代码合并后去重生成，无需单独维护基金代码列表。
 
 ### 密钥验证
 
@@ -158,10 +165,7 @@ npm run preview
 
 | 函数 | 说明 |
 |------|------|
-| `fetchRealtimeBatch(codes)` | 批量获取基金实时估值 |
 | `fetchSingleFundgz(code)` | 获取单只基金估值（JSONP） |
-| `fetchRealtimeAuto(codes)` | 多源自动补齐 |
-| `fetchFundsLive(codes, mode)` | 主入口函数 |
 | `fetchPingzhongdata(code)` | 获取基金详细数据 |
 
 ### 指数数据 API (`src/api/index.js`)
@@ -194,12 +198,14 @@ npm run preview
 
 | 功能 | 外部 API | 调用方式 |
 |------|----------|---------|
-| 批量基金估值 | `fundmobapi.eastmoney.com` | fetch（支持 CORS） |
 | 单只估值补齐 | `fundgz.1234567.com.cn` | JSONP |
 | 指数快照 | `push2.eastmoney.com` | JSONP |
 | 净值数据 | `fund.eastmoney.com/pingzhongdata` | script 标签 |
+| 配置存储 | `api.github.com` | REST API |
 
-> **注意**：`fundmobapi.eastmoney.com` 支持 CORS，可直接使用 fetch。其他接口使用 JSONP 或 script 标签加载方式绕过 CORS 限制。
+> **注意**：所有接口使用 JSONP 或 script 标签加载方式绕过 CORS 限制。
+>
+> **详细文档**：完整的 API 字段说明、计算逻辑、重试策略等请查看 [DATA_SOURCES.md](./DATA_SOURCES.md)。
 
 ## 部署
 
@@ -223,7 +229,7 @@ git push origin pxf-dev-cursor
 |------|------|
 | 代码审查 | 检查代码质量，确保逻辑正确 |
 | 补充注释 | 为新增/修改的代码添加必要注释 |
-| 更新版本信息 | README 顶部版本表添加新版本 |
+| 更新版本信息 | README 顶部版本表添加新版本（只能新增，不能修改旧版本信息） |
 | 简要更新日志 | README 底部更新日志添加简要说明 |
 | 更新 changelog | `changelog/` 目录添加详细变更记录 |
 | 部署 dist 产物 | 运行 `npm run build` 并提交 dist 目录 |
@@ -257,8 +263,9 @@ npm run build
 
 ## 更新日志
 
-详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期记录。
+详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期-版本-变更信息记录。
 
+<<<<<<< HEAD
 ### v2.1.10 (2026-04-02)
 
 **Bug 修复 / 体验**
@@ -272,28 +279,169 @@ npm run build
 - 提交规范与 Conventional Commits、`cursor_agent_workflow` 规则交叉引用
 
 ### v2.1.5 (2026-04-01)
+=======
+### v2.4.6 (2026-04-15)
+
+**稳定性优化 — pingzhongdata 请求队列优化**
+
+- 新增 `pingzhongdataQueue` 请求队列，确保同一时间只有一个请求执行
+- 解决并发请求时全局变量 `window.Data_netWorthTrend` 竞态条件问题
+- 保留原有的 3 次重试策略和 100ms 重试间隔
+
+### v2.5.0 (2026-04-18)
+
+**新功能 — 基金交易规则同步功能**
+
+- 新增 GitHub Actions 定时任务，每天 17:00 UTC 自动同步基金交易规则
+- 支持手动触发 workflow
+- 数据源：danjuanfunds.com 基金详情接口
+- 同步买入/卖出确认日（T+N）数据到 `public/config/fund_info.json`
+
+### v2.4.9 (2026-04-15)
+
+**功能优化 — 移除上一交易日涨跌表格**
+
+- 移除"上一交易日涨跌"基金表格，统一显示所有基金在"基金实时估值"表格
+- 表格标题从"实时估值基金"更名为"基金实时估值"
+- 基金数据统一使用实时估值或 pingzhongdata 的净值和涨跌幅
+
+### v2.4.8 (2026-04-15)
+
+**依赖更新 — 引入 dayjs 处理日期**
+
+- 引入 dayjs 替代原生 Date 处理时间戳和日期
+- 修复 `getLastTradingChange` 时区转换问题，`toISOString()` 会产生 UTC 偏差
+- 使用 `dayjs(timestamp).format('YYYY-MM-DD')` 自动处理本地时区
+
+### v2.4.7 (2026-04-15)
+
+**Bug 修复 — fundgz 空数据判断优化**
+
+- 修复 `fetchSingleFundgz` 无法识别 `jsonpgz();` 空数据的问题
+- 空数据时立即 resolve，避免 10 秒超时等待
+- `useFunds` 检测到 fundgz 空数据后直接调用 `pingzhongdata` 作为备选，不再无效重试
+- 优化数据加载流程，减少等待时间
+
+### v2.4.5 (2026-04-15)
+
+**Bug 修复 — 修复弹窗打开时 GitHub API 多次请求问题**
+
+- 移除 `FundManageModal` 组件中的 `onMounted` 自动加载，避免页面加载时立即触发 GitHub API 请求
+- 保留 `dialogVisible` watcher 作为唯一的配置加载触发点
+- 优化 `keyValue` watcher，仅在弹窗打开时更新 `managedCodes`
+
+**体验优化 — 添加加载状态提示**
+
+- 加载配置时显示 Loading 遮罩层，旋转图标 + "加载中..." 文字
+- 加载过程中禁用底部按钮，防止误操作
+
+### v2.4.4 (2026-04-15)
+
+**IndexStrip 透明化触发点优化**
+- 优化 IndexStrip 滚动透明化触发逻辑
+- 旧逻辑：以基金表格作为触发参考点
+- 新逻辑：以 Toolbar 搜索框作为触发参考点，搜索框滚动到"基金监控"标题底部时 IndexStrip 完全透明
+- 提升视觉体验，搜索场景下指数数据更早渐隐
+
+### v2.4.3 (2026-04-14)
+
+**API 移除与简化**
+- 彻底移除 `FundMNewApi/FundMNFInfo` 接口的调用逻辑。由于浏览器的安全限制，该接口经常出现 CORS 问题和 User-Agent 限制。
+- `fetchRealtimeBatch` 和 `fetchFundBasicInfo` 等关联函数已一并移除。
+- 项目现在完全依赖于不受跨域限制的 `fundgz` (JSONP) 和 `pingzhongdata` (Script 标签) 接口，提升稳定性和环境兼容性。
+
+### v2.4.2 (2026-04-14)
+
+**API 优化**
+- 为 FundMNFInfo 接口请求添加移动端 User-Agent，模拟移动端请求。
+
+### v2.4.1 (2026-04-14)
+>>>>>>> lyl-dev-claude
 
 **Bug 修复**
-- 修复 `fundmobapi.eastmoney.com` 接口调用问题
-- 该接口不支持 JSONP，返回纯 JSON 格式，改回 fetch 方式
-- 添加 vConsole 调试工具便于生产环境排查问题
+- 修复指数面板完全透明后仍占据 sticky 顶层区域，导致下方工具栏和表格无法点击的问题
+- 为指数面板透明态添加 `pointer-events: none`，透明后点击自动穿透到下层内容
+- 调整 `sticky-header` 事件命中策略，仅保留真实头部内容可交互，空白区域不再拦截点击
 
-**问题原因**
-- `fundmobapi.eastmoney.com` 接口支持 CORS，可直接使用 fetch
-- 之前误以为需要 JSONP，导致回调无法触发，请求卡住
-- `push2.eastmoney.com` 和 `fundgz.1234567.com.cn` 支持 JSONP
+### v2.4.0 (2026-04-10)
 
-### v2.1.4 (2026-04-01)
+**新功能 — IndexStrip 滚动透明化效果**
+- 页面下滑时指数数据区域逐渐透明，表格顶部接触 sticky header 时完全透明
+- 使用 requestAnimationFrame 实现平滑滚动节流
+- 动态计算淡出距离，适配不同屏幕尺寸
+- ease-out cubic 缓动函数，过渡更自然
+- CSS transition 确保视觉平滑，防止抖动
+
+### v2.3.1 (2026-04-09)
+
+**UI 优化**
+- 卡片基金名称使用 clamp 自适应字体大小
+- 卡片基金代码与更新时间字体大小统一为 12px
+- 移除卡片标题行 gap，紧密排列
+
+### v2.3.0 (2026-04-09)
+
+**UI 重构 — Coinbase 设计风格**
+- 全面重构 UI 为 Coinbase 设计风格，统一颜色系统、圆角规范
+- 新增 DESIGN.md 设计规范文档
+- 品牌色：#0052ff，深色：#0a0b0d，背景：#ffffff
+- 圆角规范：按钮 56px、卡片 16px、对话框 24px
+- 表格头部蓝色背景，标题蓝色装饰条
+- 指数卡片四行显示（名称、价格、涨跌、百分比）
+- 管理基金弹窗全端适配
+
+### v2.2.3 (2026-04-09)
 
 **Bug 修复**
-- 修复 GitHub Pages CORS 跨域问题
-- `push2.eastmoney.com` 改用 JSONP（参数 `cb`）
-- `fundgz.1234567.com.cn` 使用 JSONP
-- 删除无用的 `fetchJSON` 函数
+- 修复点击"看全部"后，管理基金按钮不显示、不能切回"看自己"的问题
+- 切换视图时保留密钥认证状态，不再清空有效密钥
 
-**技术变更**
-- 移除自定义请求头避免触发 CORS 预检
-- 根据接口特性选择合适的调用方式
+### v2.2.2 (2026-04-08)
+
+**配置重构**
+- 移除 `fund_codes.json` 配置文件
+- 基金代码由 `fund_groups.json` 中所有分组合并后去重生成
+- 简化配置管理，只需维护一份配置文件
+- FundManageModal 保存逻辑简化，不再同步 fund_codes.json
+
+### v2.2.1 (2026-04-03)
+
+**Bug 修复 — 对齐 Python 脚本**
+- 修复 gszzl（估算涨跌幅）未传递到建议计算，导致止盈、所有买入规则永远不触发
+- 修复持仓/空仓建议合并为单次计算，改为两次独立计算再合并
+- 修复买入前提条件遗漏"周K在60线上方"
+- 修复周线聚合 ISO 周算法，跨年周归类错误
+- 补全空仓30线上方观望逻辑（不追高）
+- 补全反弹减仓提醒逻辑
+
+### v2.1.15 (2026-04-03)
+
+**UI 重构**
+- 重构管理基金列表页面，适配主页样式
+- 修复弹窗关闭后无法再次打开的问题（使用 defineModel 双向绑定）
+- 移动端弹窗高度调整，对齐指数数据顶部
+- 基金代码输入框和添加按钮改为同一行
+
+### v2.1.14 (2026-04-02)
+
+**稳定性优化**
+- fundgz 补齐添加重试策略：请求失败时重试 3 次，间隔 150ms
+- 提升无实时估值基金的补齐成功率
+
+### v2.1.11 (2026-04-02)
+
+**UI 优化**
+- 加载状态优化：更新中禁用看自己/看全部、排序、展开全部
+- 密钥清空后自动切换看全部并刷新数据
+- 无密钥时禁用看自己/看全部开关
+- 移动端第三行更新时间显示修复
+- 移动端管理基金列表名称宽度调整为 180px
+
+**配置刷新**
+- 保存基金后立即生效，无需等待 GitHub Pages 部署
+
+**请求优化**
+- fundgz 和 pingzhongdata 请求间隔调整为 150ms
 
 ### v2.1.8 (2026-04-02)
 
@@ -331,6 +479,30 @@ npm run build
 - 移除诊断面板
 - 移除所有调试日志
 - 优化 fundgz 请求间隔为 100ms，频率限制暂停为 0.5 秒
+
+### v2.1.5 (2026-04-01)
+
+**Bug 修复**
+- 修复 `fundmobapi.eastmoney.com` 接口调用问题
+- 该接口不支持 JSONP，返回纯 JSON 格式，改回 fetch 方式
+- 添加 vConsole 调试工具便于生产环境排查问题
+
+**问题原因**
+- `fundmobapi.eastmoney.com` 接口支持 CORS，可直接使用 fetch
+- 之前误以为需要 JSONP，导致回调无法触发，请求卡住
+- `push2.eastmoney.com` 和 `fundgz.1234567.com.cn` 支持 JSONP
+
+### v2.1.4 (2026-04-01)
+
+**Bug 修复**
+- 修复 GitHub Pages CORS 跨域问题
+- `push2.eastmoney.com` 改用 JSONP（参数 `cb`）
+- `fundgz.1234567.com.cn` 使用 JSONP
+- 删除无用的 `fetchJSON` 函数
+
+**技术变更**
+- 移除自定义请求头避免触发 CORS 预检
+- 根据接口特性选择合适的调用方式
 
 ### v2.1.3 (2026-04-01)
 

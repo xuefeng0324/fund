@@ -7,11 +7,8 @@
 
 import { ref, reactive } from 'vue'
 import {
-  fetchRealtimeAuto,
   fetchSingleFundgz,
-  fetchFundBasicInfo,
-  buildResults,
-  fetchNoEstimateFunds
+  getLastTradingChange
 } from '../api/funds'
 
 /**
@@ -42,14 +39,12 @@ export function useFunds() {
    * 加载基金数据
    *
    * 流程：
-   * 1. 批量获取基金数据，立即显示有估值的基金
-   * 2. 无估值基金立即获取上一交易日涨跌数据
-   * 3. fundgz 异步补齐，结果返回时替换对应基金数据
+   * 1. fundgz 获取实时数据，成功则直接使用
+   * 2. fundgz 返回空数据或失败重试3次后，调用 pingzhongdata 作为备选
    *
    * @param {string[]} codes - 基金代码数组
-   * @param {string} mode - 数据获取模式（'auto' | 'em' | 'fundgz' 等）
    */
-  async function loadFunds(codes, mode = 'auto') {
+  async function loadFunds(codes) {
     if (!codes || !codes.length) {
       funds.value = []
       return
@@ -58,80 +53,73 @@ export function useFunds() {
     loading.value = true
     error.value = null
 
+    // 刷新前先清空表格数据
+    funds.value = []
+
     try {
-      // 并行获取基本信息和批量数据
-      const [basicInfo, { batchMap, missing }] = await Promise.all([
-        fetchFundBasicInfo(codes).catch(() => ({})),
-        fetchRealtimeAuto(codes, mode)
-      ])
+      // 所有代码都需要通过 fundgz 获取
+      const missing = [...codes]
 
-      // 构建初始结果（有估值的基金）
-      const { results, noEstimateCodes } = buildResults(codes, batchMap)
-
-      // 立即更新名称缓存（从 basicInfo）
-      Object.entries(basicInfo).forEach(([code, name]) => {
-        if (name) {
-          fundNameMap[code] = name
-        }
-      })
-
-      // 立即设置有估值的结果
-      funds.value = results
-
-      // 同时处理无估值基金（获取上一交易日涨跌）和 fundgz 补齐
-      // 1. 无估值基金获取上一交易日涨跌数据
-      if (noEstimateCodes.length > 0) {
-        // 异步获取，不阻塞 fundgz
-        fetchNoEstimateFunds(noEstimateCodes, basicInfo).then(extraResults => {
-          // 添加到 funds（只添加还没有 fundgz 结果的基金）
-          extraResults.forEach(f => {
-            // 更新名称缓存
-            if (f.SHORTNAME) {
-              fundNameMap[f.FCODE] = f.SHORTNAME
-            }
-            const existing = funds.value.find(item => item.FCODE === f.FCODE)
-            // 只添加还没有估值数据的基金（fundgz 可能已经返回了）
-            if (!existing || existing.GSZ == null) {
-              if (!existing) {
-                funds.value.push(f)
-              }
-            }
-          })
-          lastUpdate.value = new Date()
-        })
-      }
-
-      // 2. fundgz 异步补齐缺失数据
+      // fundgz 异步补齐缺失数据
       if (missing.length > 0) {
         missing.forEach(code => {
-          fetchSingleFundgz(code)
-            .then(r => {
-              // 查找是否已存在这只基金
-              const idx = funds.value.findIndex(f => f.FCODE === code)
-              if (idx >= 0) {
-                // 替换为 fundgz 结果（有实时估值）
-                funds.value[idx] = r
+          async function fetchWithRetry(remainRetries = 3) {
+            try {
+              const r = await fetchSingleFundgz(code)
+              // 检查返回数据是否有效（GSZ 和 GSZZL 都不为 null 才算有效）
+              if (r && (r.GSZ != null || r.GSZZL != null)) {
+                // 有效数据，添加到结果
+                const idx = funds.value.findIndex(f => f.FCODE === code)
+                if (idx >= 0) {
+                  funds.value[idx] = r
+                } else {
+                  funds.value.push(r)
+                }
+                if (r.SHORTNAME) {
+                  fundNameMap[code] = r.SHORTNAME
+                }
+                lastUpdate.value = new Date()
               } else {
-                // 添加新基金
-                funds.value.push(r)
+                // fundgz 返回空数据，直接尝试 pingzhongdata
+                throw new Error('fundgz empty response')
               }
-              // 更新名称缓存
-              if (r.SHORTNAME) {
-                fundNameMap[code] = r.SHORTNAME
+            } catch (e) {
+              if (remainRetries > 0 && e.message !== 'fundgz empty response') {
+                // 网络错误，重试
+                await new Promise(resolve => setTimeout(resolve, 150))
+                return fetchWithRetry(remainRetries - 1)
               }
-              lastUpdate.value = new Date()
-            })
-            .catch(() => {})
+              // 重试耗尽或空数据，尝试 pingzhongdata 作为备选
+              try {
+                const lcd = await getLastTradingChange(code)
+                if (lcd.change !== null) {
+                  const fundData = {
+                    FCODE: code,
+                    SHORTNAME: lcd.name || '',
+                    GSZ: lcd.nav,  // 使用 pingzhongdata 的单位净值
+                    GSZZL: lcd.change,
+                    GZTIME: lcd.date,
+                    LAST_CHG: lcd.change
+                  }
+                  const idx = funds.value.findIndex(f => f.FCODE === code)
+                  if (idx >= 0) {
+                    funds.value[idx] = fundData
+                  } else {
+                    funds.value.push(fundData)
+                  }
+                  if (lcd.name) {
+                    fundNameMap[code] = lcd.name
+                  }
+                  lastUpdate.value = new Date()
+                }
+              } catch (e2) {
+                // pingzhongdata 也失败，忽略
+              }
+            }
+          }
+          fetchWithRetry()
         })
       }
-
-      // 补充名称（从 basicInfo）
-      funds.value.forEach(f => {
-        if (!f.SHORTNAME && basicInfo[f.FCODE]) {
-          f.SHORTNAME = basicInfo[f.FCODE]
-          fundNameMap[f.FCODE] = f.SHORTNAME
-        }
-      })
 
       lastUpdate.value = new Date()
     } catch (e) {

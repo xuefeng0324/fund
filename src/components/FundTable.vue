@@ -6,19 +6,19 @@
       <div v-if="isMobile" class="header-actions">
         <!-- 排序开关 -->
         <div class="sort-switch-wrap">
-          <span :class="['sort-label-text', { active: !sortAsc, disabled: props.loading }]">降序</span>
+          <span :class="['sort-label-text', { active: !sortAsc, disabled: isLoading }]">降序</span>
           <el-switch
             v-model="sortAsc"
             class="sort-switch"
-            :disabled="props.loading"
+            :disabled="isLoading"
             @change="sortKey = 'GSZZL'"
           />
-          <span :class="['sort-label-text', { active: sortAsc, disabled: props.loading }]">升序</span>
+          <span :class="['sort-label-text', { active: sortAsc, disabled: isLoading }]">升序</span>
         </div>
         <!-- 展开/收起按钮 -->
         <span
-          :class="['expand-btn', { disabled: props.loading }]"
-          @click="!props.loading && (allExpanded ? collapseAll() : expandAll())"
+          :class="['expand-btn', { disabled: isLoading }]"
+          @click="!isLoading && (allExpanded ? collapseAll() : expandAll())"
         >
           {{ allExpanded ? '收起全部' : '展开全部' }}
         </span>
@@ -212,6 +212,9 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
   adviceLoading: { type: Boolean, default: false }
 })
+
+// 组合 loading 状态（基金数据加载中或建议计算中）
+const isLoading = computed(() => props.loading || props.adviceLoading)
 
 // 获取基金名称
 function getFundName(fund) {
@@ -483,7 +486,7 @@ const sortedFunds = computed(() => {
 .sub-section-title {
   font-weight: 700;
   font-size: 16px;
-  color: #1a1a1a;
+  color: #0a0b0d;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -494,7 +497,7 @@ const sortedFunds = computed(() => {
   content: '';
   width: 4px;
   height: 16px;
-  background: #4f46e5;
+  background: #0052ff;
   border-radius: 2px;
   flex-shrink: 0;
 }
@@ -508,8 +511,8 @@ const sortedFunds = computed(() => {
 }
 
 .fund-table {
-  --el-table-border-color: #e5e7eb;
-  border-radius: 12px;
+  --el-table-border-color: rgba(91, 97, 110, 0.2);
+  border-radius: 16px;
   overflow: hidden;
   font-weight: 600;
 }
@@ -547,7 +550,7 @@ const sortedFunds = computed(() => {
 
 /* 持有、观望 → 灰色 */
 .advice-neutral {
-  color: #6b7280 !important;
+  color: #5b616e !important;
   font-weight: 600;
   font-size: 14px;
 }
@@ -586,7 +589,7 @@ const sortedFunds = computed(() => {
 }
 
 .mobile-sort :deep(.el-button) {
-  border-radius: 10px;
+  border-radius: 56px;
 }
 
 .sort-switch-wrap {
@@ -605,46 +608,46 @@ const sortedFunds = computed(() => {
 
 .expand-btn {
   font-size: 12px;
-  color: #4f46e5;
+  color: #0052ff;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .expand-btn.disabled {
-  color: #9ca3af;
+  color: #5b616e;
   cursor: not-allowed;
 }
 
 .sort-label-text.disabled {
-  color: #9ca3af;
+  color: #5b616e;
   cursor: not-allowed;
 }
 
 .sort-label-text {
   font-size: 13px;
-  color: #9ca3af;
+  color: #5b616e;
   cursor: pointer;
   transition: color 0.2s;
 }
 
 .sort-label-text.active {
-  color: #4f46e5;
+  color: #0052ff;
   font-weight: 500;
 }
 
 .sort-switch {
-  --el-switch-on-color: #4f46e5;
+  --el-switch-on-color: #0052ff;
 }
 
 .sort-label {
   font-size: 13px;
-  color: #666;
+  color: #5b616e;
   font-weight: 500;
 }
 
 .fund-card {
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  border: 1px solid rgba(91, 97, 110, 0.2);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -654,20 +657,21 @@ const sortedFunds = computed(() => {
 }
 
 .fund-card :deep(.el-card__body) {
-  padding: 16px;
+  padding: 12px;
 }
 
 /* 卡片标题行（始终显示，位置固定） */
 .card-title-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: stretch;
+  min-height: 40px;
 }
 
 .fund-title-info {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 2px;
   flex: 1;
   min-width: 0;
@@ -680,6 +684,7 @@ const sortedFunds = computed(() => {
 .fund-change-wrap {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   align-items: flex-end;
   gap: 2px;
   flex-shrink: 0;
@@ -728,18 +733,20 @@ const sortedFunds = computed(() => {
 .fund-info {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 2px;
 }
 
 .fund-name {
-  font-size: 15px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #0a0b0d;
+  font-size: clamp(13px, 3.5vw, 15px);
+  line-height: 1.2;
 }
 
 .fund-code {
   font-size: 12px;
-  color: #888;
+  color: #5b616e;
 }
 
 .fund-change {
@@ -761,13 +768,13 @@ const sortedFunds = computed(() => {
 
 .card-item .label {
   font-size: 12px;
-  color: #9ca3af;
+  color: #5b616e;
 }
 
 .card-item .value {
   font-size: 14px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #0a0b0d;
 }
 
 .card-item span:not(.label) {
@@ -782,12 +789,12 @@ const sortedFunds = computed(() => {
   align-items: center;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid rgba(91, 97, 110, 0.2);
 }
 
 .reason {
   font-size: 12px;
-  color: #666;
+  color: #5b616e;
   flex: 1;
   white-space: pre-line;
   line-height: 1.4;
@@ -810,21 +817,21 @@ const sortedFunds = computed(() => {
 }
 
 .advice-divider {
-  color: #9ca3af;
+  color: #5b616e;
   font-size: 12px;
   font-weight: 400;
   line-height: 1;
 }
 
 .time {
-  font-size: 11px;
-  color: #9ca3af;
+  font-size: 12px;
+  color: #5b616e;
   white-space: nowrap;
   margin-left: 8px;
 }
 
 .loading-text {
-  color: #9ca3af;
+  color: #5b616e;
 }
 
 @media (max-width: 768px) {

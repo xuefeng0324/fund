@@ -13,12 +13,6 @@
         </template>
       </el-input>
 
-      <el-select v-model="localSourceMode" class="source-select" placeholder="数据源">
-        <el-option label="自动" value="auto" />
-        <el-option label="fundgz" value="fundgz" />
-        <el-option label="东财" value="em" />
-      </el-select>
-
       <el-button
         type="primary"
         :loading="isLoading"
@@ -40,6 +34,7 @@
           class="key-input"
           clearable
           @change="onKeyChange"
+          @clear="onKeyClear"
           @keyup.enter="onKeyChange"
         >
           <template #prefix>
@@ -58,18 +53,18 @@
 
       <div class="view-switch">
         <span
-          :class="['switch-label', { active: !showAll, disabled: props.loading }]"
+          :class="['switch-label', { active: !showAll, disabled: isLoading || !validKey }]"
           @click="handleSwitchClick(false)"
         >
           看自己
         </span>
         <el-switch
           v-model="showAll"
-          :disabled="props.loading"
+          :disabled="isLoading || !validKey"
           @change="handleSwitchChange"
         />
         <span
-          :class="['switch-label', { active: showAll, disabled: props.loading }]"
+          :class="['switch-label', { active: showAll, disabled: isLoading || !validKey }]"
           @click="handleSwitchClick(true)"
         >
           看全部
@@ -77,7 +72,7 @@
       </div>
     </div>
 
-    <div v-if="lastUpdate && !props.loading" class="toolbar-row">
+    <div v-if="lastUpdate && !isLoading" class="toolbar-row">
       <span class="update-time">{{ formatTime(lastUpdate) }}</span>
     </div>
   </div>
@@ -89,7 +84,6 @@ import { Search, Refresh, Setting, Key } from '@element-plus/icons-vue'
 
 const props = defineProps({
   keyValue: { type: String, default: '' },
-  sourceMode: { type: String, default: 'auto' },
   validKey: { type: String, default: '' },
   showAll: { type: Boolean, default: true },
   lastUpdate: { type: Date, default: null },
@@ -97,9 +91,8 @@ const props = defineProps({
   adviceLoading: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['update:keyValue', 'update:sourceMode', 'update:showAll', 'refresh', 'manage', 'search'])
+const emit = defineEmits(['update:keyValue', 'update:showAll', 'refresh', 'manage', 'search'])
 
-const localSourceMode = ref(props.sourceMode)
 const localKeyword = ref('')
 const localKey = ref(props.keyValue)
 
@@ -114,14 +107,6 @@ const showManageBtn = computed(() => !!props.validKey)
 // 按钮是否处于加载状态（基金数据加载中或建议计算中）
 const isLoading = computed(() => props.loading || props.adviceLoading)
 
-watch(() => props.sourceMode, (val) => {
-  localSourceMode.value = val
-})
-
-watch(localSourceMode, (val) => {
-  emit('update:sourceMode', val)
-})
-
 // 标记是否正在切换视图模式（避免 watch 清除密钥）
 let isSwitchingView = false
 
@@ -132,8 +117,8 @@ watch(() => props.keyValue, (val) => {
 
 // switch 变化时触发
 function handleSwitchChange(val) {
-  if (props.loading) {
-    // 如果正在 loading，恢复 switch 状态
+  if (isLoading.value || !props.validKey) {
+    // 如果正在 loading 或没有有效密钥，恢复 switch 状态
     showAll.value = !val
     return
   }
@@ -143,12 +128,12 @@ function handleSwitchChange(val) {
 
   isSwitchingView = true
   if (val) {
-    // 切换到全部
+    // 切换到全部：只改变显示模式，不清空密钥
     emit('update:showAll', true)
-    emit('update:keyValue', '')
   } else {
     // 切换到自己
     emit('update:showAll', false)
+    // 如果密钥输入框有值，重新触发密钥验证
     if (localKey.value.trim()) {
       emit('update:keyValue', localKey.value.trim())
     }
@@ -164,7 +149,7 @@ function handleSwitchChange(val) {
 
 // 点击文字切换
 function handleSwitchClick(val) {
-  if (props.loading) return
+  if (isLoading.value || !props.validKey) return
   // 如果值没变，不做处理
   if (showAll.value === val) return
   handleSwitchChange(val)
@@ -177,6 +162,11 @@ function onSearch() {
 function onKeyChange() {
   const val = localKey.value.trim()
   emit('update:keyValue', val)
+}
+
+function onKeyClear() {
+  // 清空密钥，由父组件 watch 处理切换到"看全部"并刷新
+  emit('update:keyValue', '')
 }
 
 function formatTime(date) {
@@ -209,10 +199,6 @@ function formatTime(date) {
   width: 180px;
 }
 
-.source-select {
-  width: 110px;
-}
-
 .key-input-wrapper {
   width: 140px;
 }
@@ -225,13 +211,13 @@ function formatTime(date) {
 
 .switch-label {
   font-size: 14px;
-  color: #9ca3af;
+  color: #5b616e;
   cursor: pointer;
   transition: color 0.2s;
 }
 
 .switch-label.active {
-  color: #4f46e5;
+  color: #0052ff;
   font-weight: 500;
 }
 
@@ -242,13 +228,13 @@ function formatTime(date) {
 
 .update-time {
   font-size: 13px;
-  color: #6b7280;
+  color: #5b616e;
   font-weight: 500;
   margin-left: 8px;
 }
 
 .toolbar :deep(.el-button) {
-  border-radius: 10px;
+  border-radius: 56px;
 }
 
 .toolbar :deep(.el-button .is-loading) {
@@ -269,11 +255,18 @@ function formatTime(date) {
 }
 
 .toolbar :deep(.el-input__wrapper) {
-  border-radius: 10px;
+  border-radius: 56px;
 }
 
 .toolbar :deep(.el-select .el-input__wrapper) {
-  border-radius: 10px;
+  border-radius: 56px;
+}
+
+/* PC端隐藏第三行更新时间 */
+@media (min-width: 769px) {
+  .toolbar-row:last-child .update-time:not(.pc-update-time) {
+    display: none;
+  }
 }
 
 @media (max-width: 768px) {
@@ -290,10 +283,6 @@ function formatTime(date) {
     width: 140px;
   }
 
-  .source-select {
-    width: 90px;
-  }
-
   .key-input-wrapper {
     width: 100px;
   }
@@ -303,11 +292,8 @@ function formatTime(date) {
     display: none;
   }
 
-  .toolbar-row:not(:only-child) .update-time {
-    display: none;
-  }
-
-  .toolbar-row:only-child .update-time {
+  /* 移动端第三行更新时间样式 */
+  .toolbar-row:last-child .update-time:not(.pc-update-time) {
     display: block;
     width: 100%;
     font-size: 14px;
@@ -328,7 +314,6 @@ function formatTime(date) {
   }
 
   .search-input,
-  .source-select,
   .key-input-wrapper {
     flex: 1;
     min-width: 80px;
