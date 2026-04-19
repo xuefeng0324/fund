@@ -72,11 +72,18 @@ async function main() {
   const existingCodes = new Set(fundInfo.map(item => item.fund_code));
   console.log(`Found ${existingCodes.size} existing fund codes in fund_info.json`);
 
+  // 过滤掉已不在 fund_groups.json 中的基金代码
+  const removedCodes = [...existingCodes].filter(code => !allCodes.has(code));
+  if (removedCodes.length > 0) {
+    console.log(`Removing ${removedCodes.length} fund codes no longer in fund_groups.json: ${removedCodes.join(', ')}`);
+  }
+  fundInfo = fundInfo.filter(item => allCodes.has(item.fund_code));
+
   const needFetch = [...allCodes].filter(code => !existingCodes.has(code));
   console.log(`Need to fetch ${needFetch.length} fund codes`);
 
-  if (needFetch.length === 0) {
-    console.log('No new funds to sync. Exiting.');
+  if (needFetch.length === 0 && removedCodes.length === 0) {
+    console.log('Nothing to sync. Exiting.');
     return;
   }
 
@@ -97,8 +104,8 @@ async function main() {
   writeJson(FUND_INFO_PATH, updatedFundInfo);
   console.log(`Updated fund_info.json with ${newFundInfo.length} new entries`);
 
-  if (newFundInfo.length === 0) {
-    console.log('No successful fetches. Not committing changes.');
+  if (newFundInfo.length === 0 && removedCodes.length === 0) {
+    console.log('No new funds fetched and no funds removed. Not committing changes.');
     return;
   }
   console.log('Fund info sync completed successfully.');
