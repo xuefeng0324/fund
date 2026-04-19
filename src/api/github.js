@@ -11,7 +11,7 @@
 const GITHUB_API = 'https://api.github.com'
 const REPO_OWNER = 'xuefeng0324'
 const REPO_NAME = 'fund'
-const BRANCH = 'lyl-dev-claude'  // 指定分支
+const BRANCH = 'main'  // 指定分支
 
 // 从环境变量获取 GitHub Token（VITE_GITHUB_TOKEN）
 const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN || ''
