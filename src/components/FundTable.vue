@@ -503,7 +503,6 @@ const sortedFunds = computed(() => {
   color: #0a0b0d;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   vertical-align: middle;
 }
 
