@@ -22,6 +22,7 @@ import { getStorage, setStorage, STORAGE_KEYS } from '../utils/storage'
 
 import fundCodesData from '../../public/config/fund_codes.json'
 import fundGroupsData from '../../public/config/fund_groups.json'
+import fundInfoData from '../../public/config/fund_info.json'
 
 /**
  * 配置管理 Hook
@@ -32,6 +33,19 @@ export function useConfig() {
   const fundCodes = computed(() => {
     const allCodes = Object.values(fundGroups.value).flat()
     return [...new Set(allCodes)]
+  })
+
+  // 基金代码 → 买入确认日映射
+  const fundInfoMap = computed(() => {
+    const map = {}
+    if (Array.isArray(fundInfoData)) {
+      fundInfoData.forEach(item => {
+        if (item.fund_code) {
+          map[item.fund_code] = item.buy_confirm_date
+        }
+      })
+    }
+    return map
   })
   const configSha = ref({ fundGroups: null })
   const loading = ref(false)
@@ -124,6 +138,7 @@ export function useConfig() {
 
   return {
     fundCodes,
+    fundInfoMap,
     fundGroups,
     configSha,
     loading,
