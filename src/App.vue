@@ -17,11 +17,15 @@
         @search="searchKeyword = $event"
       />
       <FundTable
-        title="基金实时估值"
-        :funds="filteredNormalFunds"
+        v-for="dateKey in sortedGroupKeys"
+        :key="dateKey"
+        :title="getTableTitle(dateKey)"
+        :funds="groupedFunds[dateKey]"
         :advice="adviceData"
         :loading="loading"
         :advice-loading="adviceLoading"
+        :collapsible="true"
+        :default-collapsed="false"
       />
     </div>
     <FundManageModal
@@ -129,7 +133,7 @@ function resetTimer() {
 }
 
 // 组合式函数
-const { fundCodes, fundGroups, loadConfig } = useConfig()
+const { fundCodes, fundGroups, fundInfoMap, loadConfig } = useConfig()
 const { funds, fundNameMap, loadFunds } = useFunds()
 const { indexData, loadIndex } = useIndex()
 const { adviceData, loadAdvice } = useAdvice()
@@ -143,6 +147,33 @@ const filteredNormalFunds = computed(() => {
     f.FCODE?.toLowerCase().includes(kw) ||
     f.SHORTNAME?.toLowerCase().includes(kw)
   )
+})
+
+// 按买入确认日分组
+const groupedFunds = computed(() => {
+  const groups = {}
+  for (const fund of funds.value) {
+    const code = fund.FCODE
+    const dateKey = fundInfoMap.value[code] ?? 'unknown'
+    if (!groups[dateKey]) groups[dateKey] = []
+    groups[dateKey].push(fund)
+  }
+  return groups
+})
+
+// 获取表格标题
+function getTableTitle(dateKey) {
+  if (dateKey === 'unknown') return '基金实时估值（未知）'
+  return `基金实时估值（T+${dateKey}）`
+}
+
+// 按 dateKey 排序（1, 2, 3, ..., unknown）
+const sortedGroupKeys = computed(() => {
+  return Object.keys(groupedFunds.value).sort((a, b) => {
+    if (a === 'unknown') return 1
+    if (b === 'unknown') return -1
+    return parseInt(a) - parseInt(b)
+  })
 })
 
 // 方法
