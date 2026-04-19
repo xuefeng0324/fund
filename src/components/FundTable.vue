@@ -499,7 +499,7 @@ const sortedFunds = computed(() => {
 
 .sub-section-title {
   font-weight: 700;
-  font-size: 16px;
+  font-size: clamp(13px, 3.5vw, 15px);
   color: #0a0b0d;
   display: inline-flex;
   align-items: center;
@@ -878,7 +878,7 @@ const sortedFunds = computed(() => {
   }
 
   .sub-section-title {
-    font-size: 14px;
+    font-size: clamp(13px, 3.5vw, 15px);
     margin-bottom: 24px;
   }
 }
