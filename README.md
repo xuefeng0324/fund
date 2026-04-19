@@ -233,7 +233,7 @@ git push origin pxf-dev-cursor
 | 补充注释 | 为新增/修改的代码添加必要注释 |
 | 更新版本信息 | README 顶部版本表添加新版本（只能新增，不能修改旧版本信息） |
 | 简要更新日志 | README 底部更新日志添加简要说明 |
-| 更新 changelog | `changelog/` 目录添加详细变更记录 |
+| 更新 changelog | `changelog/` 目录添加详细变更记录（设计方案） |
 | 部署 dist 产物 | 运行 `npm run build` 并提交 dist 目录 |
 
 **在线地址：** https://xuefeng0324.github.io/fund/
