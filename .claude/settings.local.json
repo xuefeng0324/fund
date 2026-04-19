@@ -1,28 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)",
-      "Bash(curl -s 'https://fundgz.1234567.com.cn/js/006328.js?rt=$\\(date +%s\\)')",
-      "Bash(curl -s 'https://fundgz.1234567.com.cn/js/001549.js?rt=$\\(date +%s\\)')",
-      "Bash(curl -s https://fund.eastmoney.com/pingzhongdata/006328.js)",
-      "Bash(rm -f build_pages.py fund_monitor.py \"fund_monitor备份趋势.py\" live_fetch.js local_verify.mjs pages_verify.mjs run.bat fund_codes.json fund_groups.json)",
-      "Bash(rm -rf docs)",
-      "Bash(rm -f src/components/SparklineChart.vue src/api/sparkline.js)",
-      "Bash(npm run:*)",
-      "Bash(curl -s https://fund.eastmoney.com/pingzhongdata/001549.js)",
-      "Bash(grep -o \"var Data_netWorthTrend = \\\\[.\\\\{0,200\\\\}\")",
-      "Bash(curl -s \"http://localhost:5176/api/eastmoney-fundmob/FundMNewApi/FundMNFInfo?pageIndex=1&pageSize=200&plat=Android&appType=ttjj&product=EFund&Version=1&deviceid=Wap&Fcodes=001549,012922\")",
-      "Bash(curl -v \"http://localhost:5176/api/eastmoney-fundmob/FundMNewApi/FundMNFInfo?pageIndex=1&pageSize=2&plat=Android&appType=ttjj&product=EFund&Version=1&deviceid=Wap&Fcodes=001549\")",
-      "Bash(curl -s \"http://localhost:5176/api/eastmoney-fund/pingzhongdata/001549.js\")",
-      "Bash(taskkill /F /IM node.exe)",
-      "Bash(ls:*)",
-      "Bash(git config:*)",
-      "Bash(gh auth:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "WebSearch",
-      "WebFetch(domain:animate.style)"
     ]
   }
 }

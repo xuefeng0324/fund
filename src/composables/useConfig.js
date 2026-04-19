@@ -14,7 +14,6 @@ import { ref, computed } from 'vue'
 import { getFileContent } from '../api/github'
 import { getStorage, setStorage, STORAGE_KEYS } from '../utils/storage'
 
-import fundCodesData from '../../public/config/fund_codes.json'
 import fundGroupsData from '../../public/config/fund_groups.json'
 import fundInfoData from '../../public/config/fund_info.json'
 
@@ -64,7 +63,6 @@ export function useConfig() {
         fundGroups.value = cached.fundGroups
         console.info('[PXF] 使用用户已保存的配置（localStorage）')
       } else {
-        fundCodes.value = Array.isArray(fundCodesData) ? fundCodesData : []
         fundGroups.value = (fundGroupsData && typeof fundGroupsData === 'object') ? fundGroupsData : {}
         console.info('[PXF] 使用构建时嵌入的配置数据')
       }
