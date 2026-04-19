@@ -3,17 +3,11 @@
  *
  * 负责加载和管理基金配置数据：
  * - 基金分组配置（fund_groups.json）
+ * - 基金交易规则（fund_info.json）
  *
-<<<<<<< HEAD
  * 配置在构建时直接 import 嵌入 bundle，
  * 不依赖运行时网络请求，规避 GitHub Pages 路径/缓存问题。
  * 用户通过「管理基金」保存的配置仍优先从 localStorage 读取。
-=======
- * 配置文件放在 public/config/ 目录，运行时请求加载
- * 修改配置文件后无需重新构建，刷新页面即可生效
- *
- * fundCodes 由 fund_groups.json 中所有分组的代码合并后去重生成
->>>>>>> lyl-dev-claude
  */
 
 import { ref, computed } from 'vue'
@@ -59,7 +53,6 @@ export function useConfig() {
     error.value = null
 
     try {
-<<<<<<< HEAD
       const cached = getStorage(STORAGE_KEYS.USER_CONFIG)
       const hasUserConfig = cached &&
         Array.isArray(cached.fundCodes) &&
@@ -76,35 +69,6 @@ export function useConfig() {
         console.info('[PXF] 使用构建时嵌入的配置数据')
       }
 
-=======
-      const t = Date.now()
-      const primaryGroups = `/fund/config/fund_groups.json?t=${t}`
-      const fallbackGroups = `https://xuefeng0324.github.io/fund/config/fund_groups.json?t=${t}`
-
-      let groups = null
-
-      try {
-        groups = await fetchJsonWithTimeout(primaryGroups)
-      } catch (e1) {
-        try {
-          groups = await fetchJsonWithTimeout(fallbackGroups)
-        } catch (e2) {
-          const cached = getStorage(STORAGE_KEYS.USER_CONFIG)
-          if (cached && cached.fundGroups) {
-            fundGroups.value = cached.fundGroups
-            return { fundCodes: fundCodes.value, fundGroups: fundGroups.value, fromCache: true }
-          }
-          throw new Error('配置加载失败')
-        }
-      }
-
-      fundGroups.value = groups && typeof groups === 'object' ? groups : {}
-      setStorage(STORAGE_KEYS.USER_CONFIG, {
-        fundGroups: fundGroups.value,
-        updatedAt: Date.now()
-      })
-
->>>>>>> lyl-dev-claude
       return { fundCodes: fundCodes.value, fundGroups: fundGroups.value }
     } catch (e) {
       error.value = e.message
