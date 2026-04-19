@@ -1,7 +1,10 @@
 <template>
   <div class="fund-section">
     <div class="section-header">
-      <div class="sub-section-title">{{ title }}</div>
+      <div class="sub-section-title" @click="toggleCollapse" :style="{ cursor: props.collapsible ? 'pointer' : 'default' }">
+  <span v-if="props.collapsible" class="collapse-icon">{{ collapsed ? '▶' : '▼' }}</span>
+  {{ title }}
+</div>
       <!-- 移动端功能按钮（标题右侧） -->
       <div v-if="isMobile" class="header-actions">
         <!-- 排序开关 -->
@@ -28,6 +31,7 @@
     <!-- PC端表格 -->
     <el-table
       v-if="!isMobile"
+      v-show="!collapsed"
       :data="sortedFunds"
       stripe
       class="fund-table"
@@ -78,7 +82,7 @@
     </el-table>
 
     <!-- 移动端卡片 -->
-    <div v-else class="fund-cards">
+    <div v-else v-show="!collapsed" class="fund-cards">
       <el-card
         v-for="fund in sortedFunds"
         :key="fund.FCODE"
@@ -210,11 +214,17 @@ const props = defineProps({
   funds: { type: Array, default: () => [] },
   advice: { type: Object, default: () => ({}) },
   loading: { type: Boolean, default: false },
-  adviceLoading: { type: Boolean, default: false }
+  adviceLoading: { type: Boolean, default: false },
+  collapsible: { type: Boolean, default: false },
+  defaultCollapsed: { type: Boolean, default: false }
 })
 
 // 组合 loading 状态（基金数据加载中或建议计算中）
 const isLoading = computed(() => props.loading || props.adviceLoading)
+
+// 折叠状态
+const collapsed = ref(props.defaultCollapsed)
+const toggleCollapse = () => { collapsed.value = !collapsed.value }
 
 // 获取基金名称
 function getFundName(fund) {
@@ -831,6 +841,12 @@ const sortedFunds = computed(() => {
 }
 
 .loading-text {
+  color: #5b616e;
+}
+
+.collapse-icon {
+  margin-right: 8px;
+  font-size: 12px;
   color: #5b616e;
 }
 
