@@ -2,7 +2,11 @@
   <div class="fund-section">
     <div class="section-header">
       <div class="sub-section-title" @click="toggleCollapse" :style="{ cursor: props.collapsible ? 'pointer' : 'default' }">
-  <span v-if="props.collapsible" class="collapse-icon">{{ collapsed ? '▶' : '▼' }}</span>
+  <span v-if="props.collapsible" class="collapse-icon">
+  <svg class="chevron" :class="{ collapsed }" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+</span>
   {{ title }}
 </div>
       <!-- 移动端功能按钮（标题右侧） -->
@@ -845,9 +849,28 @@ const sortedFunds = computed(() => {
 }
 
 .collapse-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
   margin-right: 8px;
-  font-size: 12px;
   color: #5b616e;
+  transition: color 0.2s ease;
+}
+
+.collapse-icon:hover {
+  color: #0052ff;
+}
+
+.chevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.25s ease;
+}
+
+.chevron.collapsed {
+  transform: rotate(-90deg);
 }
 
 @media (max-width: 768px) {
