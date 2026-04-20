@@ -12,6 +12,7 @@
  */
 
 import { ref } from 'vue'
+import dayjs from 'dayjs'
 import { fetchPingzhongdata } from '../api/funds'
 import {
   computeKDJ,
@@ -52,7 +53,8 @@ export function useAdvice() {
 
     const above60 = latest != null && ma60 != null && latest >= ma60
     const above30 = latest != null && ma30 != null && latest >= ma30
-    const z = gszzl != null ? parseFloat(gszzl) : null
+    const zRaw = parseFloat(gszzl)
+    const z = Number.isFinite(zRaw) ? zRaw : null
 
     // KDJ 过滤（J 从下向上穿越 20 作为"低位回升"）
     const kdjOk = kdj_j != null && kdj_j < 20 && (kdj_prev_j == null || kdj_prev_j >= 20)
@@ -240,7 +242,7 @@ export function useAdvice() {
       const kdj = computeKDJ(closes, 9)
 
       // 周K数据
-      const weeklyData = trend.map(it => [new Date(it.x).toISOString().slice(0, 10), it.y])
+      const weeklyData = trend.map(it => [dayjs(it.x).format('YYYY-MM-DD'), it.y])
       const weeklyCloses = groupWeeklyLast(weeklyData)
       const weeklyClose = weeklyCloses[weeklyCloses.length - 1]
       const ma30Weekly = movingAverage(weeklyCloses, 30)

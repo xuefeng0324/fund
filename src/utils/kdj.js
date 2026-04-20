@@ -1,15 +1,4 @@
-/**
- * KDJ 指标计算工具模块
- *
- * KDJ 是一种技术分析指标，由 K 线、D 线和 J 线组成：
- * - K 线：快速指标，对价格变化敏感
- * - D 线：慢速指标，K 线的移动平均
- * - J 线：K 线和 D 线的差值，反映超买超卖
- *
- * 使用场景：
- * - J > 80：超买区域，可能回调
- * - J < 20：超卖区域，可能反弹
- */
+import dayjs from 'dayjs'
 
 /**
  * 计算移动平均值
@@ -51,8 +40,8 @@ export function computeKDJ(closes, n = 9) {
 
   for (let i = n - 1; i < closes.length; i++) {
     const window = closes.slice(i - n + 1, i + 1)
-    const llv = Math.min(...window)  // N 日最低价
-    const hhv = Math.max(...window)  // N 日最高价
+    const llv = window.reduce((a, b) => a < b ? a : b)
+    const hhv = window.reduce((a, b) => a > b ? a : b)
     const c = closes[i]              // 当日收盘价
 
     // 计算 RSV
@@ -85,7 +74,7 @@ export function groupWeeklyLast(daily) {
 
   for (const [date, close] of daily) {
     try {
-      const d = new Date(date)
+      const d = dayjs(date).toDate()
       // 标准 ISO 周算法：ISO 周四所在的年 + ISO 周数
       const thu = new Date(d)
       thu.setDate(thu.getDate() + 3 - ((thu.getDay() + 6) % 7))
@@ -147,13 +136,13 @@ export function getPrevHighBeforeDeadCross(closes, ma30List, ma60List) {
 
   // 无死叉时，取历史最高点
   if (deadIdx === null) {
-    return Math.max(...closes)
+    return closes.reduce((a, b) => a > b ? a : b)
   }
 
   // 死叉前取最高点
   if (deadIdx > 0) {
     const prevSlice = closes.slice(0, deadIdx)
-    return prevSlice.length ? Math.max(...prevSlice) : null
+    return prevSlice.length ? prevSlice.reduce((a, b) => a > b ? a : b) : null
   }
   return null
 }
@@ -170,7 +159,7 @@ export function getPrevHighBeforeDeadCross(closes, ma30List, ma60List) {
  * @returns {boolean} 是否处于主升浪
  */
 export function checkMainRise(prevHigh, latest, breakoutPrevHigh) {
-  if (prevHigh == null || !breakoutPrevHigh) return false
+  if (prevHigh == null || prevHigh <= 0 || !breakoutPrevHigh) return false
   const pctRise = ((latest - prevHigh) / prevHigh) * 100
   return pctRise >= 4 && pctRise <= 6
 }

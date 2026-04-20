@@ -60,68 +60,48 @@ export function useFunds() {
       // 所有代码都需要通过 fundgz 获取
       const missing = [...codes]
 
-      // fundgz 异步补齐缺失数据
-      if (missing.length > 0) {
-        missing.forEach(code => {
-          async function fetchWithRetry(remainRetries = 3) {
-            try {
-              const r = await fetchSingleFundgz(code)
-              // 检查返回数据是否有效（GSZ 和 GSZZL 都不为 null 才算有效）
-              if (r && (r.GSZ != null || r.GSZZL != null)) {
-                // 有效数据，添加到结果
-                const idx = funds.value.findIndex(f => f.FCODE === code)
-                if (idx >= 0) {
-                  funds.value[idx] = r
-                } else {
-                  funds.value.push(r)
-                }
-                if (r.SHORTNAME) {
-                  fundNameMap[code] = r.SHORTNAME
-                }
-                lastUpdate.value = new Date()
-              } else {
-                // fundgz 返回空数据，直接尝试 pingzhongdata
-                throw new Error('fundgz empty response')
-              }
-            } catch (e) {
-              if (remainRetries > 0 && e.message !== 'fundgz empty response') {
-                // 网络错误，重试
-                await new Promise(resolve => setTimeout(resolve, 150))
-                return fetchWithRetry(remainRetries - 1)
-              }
-              // 重试耗尽或空数据，尝试 pingzhongdata 作为备选
-              try {
-                const lcd = await getLastTradingChange(code)
-                if (lcd.change !== null) {
-                  const fundData = {
-                    FCODE: code,
-                    SHORTNAME: lcd.name || '',
-                    GSZ: lcd.nav,  // 使用 pingzhongdata 的单位净值
-                    GSZZL: lcd.change,
-                    GZTIME: lcd.date,
-                    LAST_CHG: lcd.change
-                  }
-                  const idx = funds.value.findIndex(f => f.FCODE === code)
-                  if (idx >= 0) {
-                    funds.value[idx] = fundData
-                  } else {
-                    funds.value.push(fundData)
-                  }
-                  if (lcd.name) {
-                    fundNameMap[code] = lcd.name
-                  }
-                  lastUpdate.value = new Date()
-                }
-              } catch (e2) {
-                // pingzhongdata 也失败，忽略
-              }
-            }
+      // 逐个获取基金数据，全部完成后再关闭 loading
+      async function fetchWithRetry(code, remainRetries = 3) {
+        try {
+          const r = await fetchSingleFundgz(code)
+          if (r && (r.GSZ != null || r.GSZZL != null)) {
+            const idx = funds.value.findIndex(f => f.FCODE === code)
+            if (idx >= 0) funds.value[idx] = r
+            else funds.value.push(r)
+            if (r.SHORTNAME) fundNameMap[code] = r.SHORTNAME
+            lastUpdate.value = new Date()
+          } else {
+            throw new Error('fundgz empty response')
           }
-          fetchWithRetry()
-        })
+        } catch (e) {
+          if (remainRetries > 0 && e.message !== 'fundgz empty response') {
+            await new Promise(resolve => setTimeout(resolve, 150))
+            return fetchWithRetry(code, remainRetries - 1)
+          }
+          try {
+            const lcd = await getLastTradingChange(code)
+            if (lcd.change !== null) {
+              const fundData = {
+                FCODE: code,
+                SHORTNAME: lcd.name || '',
+                GSZ: lcd.nav,
+                GSZZL: lcd.change,
+                GZTIME: lcd.date,
+                LAST_CHG: lcd.change
+              }
+              const idx = funds.value.findIndex(f => f.FCODE === code)
+              if (idx >= 0) funds.value[idx] = fundData
+              else funds.value.push(fundData)
+              if (lcd.name) fundNameMap[code] = lcd.name
+              lastUpdate.value = new Date()
+            }
+          } catch {
+            // 两个数据源都失败，跳过该基金
+          }
+        }
       }
 
-      lastUpdate.value = new Date()
+      await Promise.allSettled(missing.map(code => fetchWithRetry(code)))
     } catch (e) {
       error.value = e.message
     } finally {

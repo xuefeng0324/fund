@@ -59,7 +59,6 @@ export function useConfig() {
         cached.fundGroups
 
       if (hasUserConfig) {
-        fundCodes.value = cached.fundCodes
         fundGroups.value = cached.fundGroups
         console.info('[PXF] 使用用户已保存的配置（localStorage）')
       } else {

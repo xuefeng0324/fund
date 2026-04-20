@@ -16,6 +16,19 @@ const BRANCH = 'main'  // 指定分支
 // 从环境变量获取 GitHub Token（VITE_GITHUB_TOKEN）
 const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN || ''
 
+function buildHeaders(token) {
+  const headers = { 'Accept': 'application/vnd.github.v3+json' }
+  if (token) headers['Authorization'] = `token ${token}`
+  return headers
+}
+
+function jsonToBase64(obj) {
+  const bytes = new TextEncoder().encode(JSON.stringify(obj, null, 2))
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+  return btoa(binary)
+}
+
 /**
  * 获取文件内容和 SHA 值
  *
@@ -30,10 +43,7 @@ const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN || ''
  */
 export async function getFileContent(path, token = GITHUB_TOKEN) {
   const res = await fetch(`${GITHUB_API}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?ref=${BRANCH}`, {
-    headers: {
-      'Authorization': token ? `token ${token}` : '',
-      'Accept': 'application/vnd.github.v3+json'
-    }
+    headers: buildHeaders(token)
   })
   if (!res.ok) {
     throw new Error(`获取文件失败: ${res.status}`)
@@ -63,14 +73,10 @@ export async function getFileContent(path, token = GITHUB_TOKEN) {
 export async function updateFile(path, content, sha, token = GITHUB_TOKEN, message) {
   const res = await fetch(`${GITHUB_API}/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`, {
     method: 'PUT',
-    headers: {
-      'Authorization': token ? `token ${token}` : '',
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
-    },
+    headers: { ...buildHeaders(token), 'Content-Type': 'application/json' },
     body: JSON.stringify({
       message: message || `Update ${path}`,
-      content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
+      content: jsonToBase64(content),
       sha: sha,
       branch: BRANCH
     })

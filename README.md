@@ -6,6 +6,7 @@
 
 | 版本 | 发布日期 | 说明 |
 |------|----------|------|
+| v2.6.2 | 2026-04-20 | 代码审查：修复多处 JS bug，删除无用函数，提升稳定性 |
 | v2.6.1 | 2026-04-19 | 优化折叠箭头为 SVG chevron 图标，Coinbase 风格统一 |
 | v2.6.0 | 2026-04-19 | 基金实时估值按买入确认日分组显示，支持折叠展开 |
 | v2.5.0 | 2026-04-18 | 新增基金交易规则同步功能，GitHub Actions 定时同步买入卖出确认日数据 |
@@ -264,6 +265,18 @@ npm run build
 ## 更新日志
 
 详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期-版本-变更信息记录。
+
+### v2.6.2 (2026-04-20)
+
+**代码审查修复 — JS Bug 修复与代码清理**
+
+- `useAdvice.js`：修复周线数据日期用 `dayjs` 替换 `new Date().toISOString()`，消除 UTC 偏移导致的日期错位
+- `useAdvice.js`：用 `Number.isFinite()` 替换 `!= null`，防止 NaN 被误判为有效涨跌幅
+- `useConfig.js`：删除对 `computed` ref 的非法直接赋值，恢复响应式派生逻辑
+- `useFunds.js`：改为 `Promise.allSettled` 等待所有请求完成后再关闭 loading 状态
+- `funds.js`：修复 JSONP 请求合并 bug（resolvers 数组替代覆盖），删除未使用的 `buildResults`、`fetchNoEstimateFunds`、`todayStr`
+- `github.js`：用 `TextEncoder` 替换废弃的 `unescape`；token 为空时省略 Authorization header
+- `kdj.js`：用 `dayjs` 替换 `new Date()` 修复日期本地时区解析；`checkMainRise` 增加 `prevHigh <= 0` 保护；`Math.min/max` 展开替换为 `reduce` 避免栈溢出
 
 ### v2.6.1 (2026-04-19)
 

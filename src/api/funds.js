@@ -22,16 +22,6 @@ function safeFloat(v) {
   return isNaN(n) ? null : n
 }
 
-/**
- * 获取今日日期字符串
- */
-function todayStr() {
-  const d = new Date()
-  const m = d.getMonth() + 1
-  const day = d.getDate()
-  return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day
-}
-
 // ===== 核心数据获取函数 =====
 
 /**
@@ -52,22 +42,14 @@ const REQUEST_DELAY = 150 // 每个请求间隔 150ms，避免频率限制
 // 全局回调处理所有响应
 window.jsonpgz = (data) => {
   if (!data || !data.fundcode) {
-    // jsonpgz(); 空数据调用，没有 code 信息
-    // 假设是等待队列中最早的请求
+    // 空数据调用（无 code），取队列中最早的请求
     const firstEntry = pendingRequests.entries().next()
     if (!firstEntry.done) {
       const [code, pending] = firstEntry.value
       clearTimeout(pending.timer)
       pendingRequests.delete(code)
-      // 返回空数据，resolve 而不是 reject，让调用方检查 GSZ/GSZZL
-      pending.resolve({
-        FCODE: code,
-        SHORTNAME: '',
-        GSZ: null,
-        GSZZL: null,
-        DWJZ: null,
-        GZTIME: ''
-      })
+      const emptyResult = { FCODE: code, SHORTNAME: '', GSZ: null, GSZZL: null, DWJZ: null, GZTIME: '' }
+      pending.resolvers.forEach(r => r.resolve(emptyResult))
     }
     return
   }
@@ -78,14 +60,15 @@ window.jsonpgz = (data) => {
 
   clearTimeout(pending.timer)
   pendingRequests.delete(code)
-  pending.resolve({
+  const result = {
     FCODE: code,
     SHORTNAME: data.name || '',
     GSZ: safeFloat(data.gsz),
     GSZZL: safeFloat(data.gszzl),
     DWJZ: safeFloat(data.dwjz),
     GZTIME: data.gztime || ''
-  })
+  }
+  pending.resolvers.forEach(r => r.resolve(result))
 }
 
 // 处理请求队列
@@ -96,33 +79,36 @@ async function processQueue() {
   while (requestQueue.length > 0) {
     const { code, resolve, reject } = requestQueue.shift()
 
-    // 检查是否已有相同请求在等待
+    // 相同 code 已在等待，追加 resolver 而非覆盖
     const existing = pendingRequests.get(code)
     if (existing) {
-      existing.resolve = resolve
-      existing.reject = reject
+      existing.resolvers.push({ resolve, reject })
       continue
     }
 
     const timer = setTimeout(() => {
-      pendingRequests.delete(code)
-      reject(new Error('jsonp timeout'))
+      const pending = pendingRequests.get(code)
+      if (pending) {
+        pendingRequests.delete(code)
+        pending.resolvers.forEach(r => r.reject(new Error('jsonp timeout')))
+      }
     }, TIMEOUT_MS)
 
-    pendingRequests.set(code, { resolve, reject, timer })
+    pendingRequests.set(code, { resolvers: [{ resolve, reject }], timer })
 
     const script = document.createElement('script')
     script.src = 'https://fundgz.1234567.com.cn/js/' + encodeURIComponent(code) + '.js?rt=' + Date.now()
     script.onerror = () => {
-      pendingRequests.delete(code)
       clearTimeout(timer)
-      reject(new Error('jsonp error (likely frequency capped)'))
       if (script.parentNode) document.head.removeChild(script)
-      // 频率限制时，暂停一段时间
+      const pending = pendingRequests.get(code)
+      if (pending) {
+        pendingRequests.delete(code)
+        pending.resolvers.forEach(r => r.reject(new Error('jsonp error (likely frequency capped)')))
+      }
       if (requestQueue.length > 0) {
-        setTimeout(() => processQueue(), 500)
         isProcessingQueue = false
-        return
+        setTimeout(() => processQueue(), 500)
       }
     }
     script.onload = () => {
@@ -161,60 +147,6 @@ export function getLastTradingChange(code) {
   }).catch(e => {
     return { change: null, date: '--', name: '', nav: null }
   })
-}
-
-/**
- * 构建基金结果数组
- *
- * @param {string[]} fundCodes 基金代码数组
- * @param {Object} batchMap 批量结果映射
- * @param {Object} basicInfo 基金名称映射
- * @returns {Object} { results, noEstimateCodes }
- */
-export function buildResults(fundCodes, batchMap, basicInfo = {}) {
-  const results = []
-  const noEstimateCodes = []
-  const today = todayStr()
-
-  fundCodes.forEach(code => {
-    const info = batchMap[code]
-    if (info && info.GSZ != null) {
-      const pdate = (info.PDATE || '').trim()
-      if (pdate && pdate === today && info.DWJZ != null) {
-        info.GSZ = info.DWJZ
-        info.GZTIME = pdate
-      }
-      results.push(info)
-    } else {
-      noEstimateCodes.push({ code, info: info || {} })
-    }
-  })
-  return { results, noEstimateCodes }
-}
-
-/**
- * 获取无估值基金的上一交易日涨跌数据
- *
- * @param {Array} noEstimateCodes 无估值基金列表 [{ code, info }]
- * @param {Object} basicInfo 基金名称映射
- * @returns {Promise<Array>} 补充的基金数据数组
- */
-export async function fetchNoEstimateFunds(noEstimateCodes, basicInfo = {}) {
-  const results = []
-  const promises = noEstimateCodes.map(async item => {
-    const lcd = await getLastTradingChange(item.code)
-    const shortName = lcd.name || basicInfo[item.code] || item.info.SHORTNAME || ''
-    results.push({
-      FCODE: item.code,
-      SHORTNAME: shortName,
-      GSZ: null,
-      GSZZL: null,
-      GZTIME: lcd.date,
-      LAST_CHG: lcd.change
-    })
-  })
-  await Promise.all(promises)
-  return results
 }
 
 /**
