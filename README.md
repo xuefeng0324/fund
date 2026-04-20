@@ -76,7 +76,6 @@ fund/
 │   │   ├── IndexStrip.vue       # 指数卡片条
 │   │   ├── Toolbar.vue          # 工具栏
 │   │   ├── FundTable.vue        # 基金列表表格
-│   │   ├── FundRow.vue          # 单行基金数据
 │   │   ├── FundManageModal.vue  # 管理基金弹窗
 │   │   └── CustomAlert.vue      # 自定义提示框
 │   ├── composables/             # 组合式函数
@@ -94,17 +93,18 @@ fund/
 │       └── storage.js           # localStorage 管理
 ├── public/                       # 静态文件（不打包）
 │   ├── config/
-│   │   └── fund_groups.json     # 分组配置（包含所有基金代码）
+│   │   ├── fund_groups.json     # 分组配置（包含所有基金代码）
+│   │   └── fund_info.json       # 基金信息（名称、交易规则等）
 │   └── favicon.svg
 ├── DESIGN.md                     # 设计规范文档
-├── DATA_SOURCES.md                # 数据来源与字段计算文档
 ├── changelog/                    # 变更日志
 │   └── YYYY-MM-DD-v版本-变更标题.md    # 按日期-版本-变更信息记录
 ├── dist/                         # 构建输出
 ├── package.json
 ├── vite.config.js
 └── .github/workflows/
-    └── pages-deploy.yml         # GitHub Pages 部署
+    ├── pages-deploy.yml         # GitHub Pages 部署
+    └── fund-info-sync.yml       # 基金交易规则同步
 ```
 
 ## 快速开始
@@ -206,8 +206,6 @@ npm run preview
 | 配置存储 | `api.github.com` | REST API |
 
 > **注意**：所有接口使用 JSONP 或 script 标签加载方式绕过 CORS 限制。
->
-> **详细文档**：完整的 API 字段说明、计算逻辑、重试策略等请查看 [DATA_SOURCES.md](./DATA_SOURCES.md)。
 
 ## 部署
 
