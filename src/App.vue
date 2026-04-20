@@ -152,7 +152,8 @@ const filteredNormalFunds = computed(() => {
 // 按买入确认日分组
 const groupedFunds = computed(() => {
   const groups = {}
-  for (const fund of funds.value) {
+  const fundList = searchKeyword.value ? filteredNormalFunds.value : funds.value
+  for (const fund of fundList) {
     const code = fund.FCODE
     const dateKey = fundInfoMap.value[code] ?? 'unknown'
     if (!groups[dateKey]) groups[dateKey] = []
