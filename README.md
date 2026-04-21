@@ -225,16 +225,16 @@ git push origin pxf-dev-cursor
 
 **提交规范**：
 
-提交信息须使用 **Conventional Commits**（与方法论仓库 `AGENTS.md` 一致）：`<type>(<scope>): <中文描述>`，禁止使用模糊描述（如 `update`、泛泛的 `fix bug`）。提交代码前必须完成以下检查：
+提交信息须使用 **Conventional Commits**（与方法论仓库 `AGENTS.md` 一致）：`<type>(<scope>): <中文描述>`，禁止使用模糊描述（如 `update`、泛泛的 `fix bug`）。提交代码前必须按以下顺序完成：
 
-| 项目 | 说明 |
-|------|------|
-| 代码审查 | 检查代码质量，确保逻辑正确 |
-| 补充注释 | 为新增/修改的代码添加必要注释 |
-| 更新版本信息 | README 顶部版本表添加新版本（只能新增，不能修改旧版本信息） |
-| 简要更新日志 | README 底部更新日志添加简要说明 |
-| 更新 changelog | `changelog/` 目录添加详细变更记录（设计方案） |
-| 部署 dist 产物 | 运行 `npm run build` 并提交 dist 目录 |
+| 步骤 | 项目 | 说明 |
+|------|------|------|
+| 1 | 代码审查 | 检查代码质量，确保逻辑正确。先检查是否存在相关 code review skill 进行辅助审查 |
+| 2 | 补充注释 | 为新增/修改的代码添加必要注释 |
+| 3 | 更新版本信息 | README 顶部版本表添加新版本（只能新增，不能修改旧版本信息） |
+| 4 | 简要更新日志 | README 底部更新日志添加简要说明 |
+| 5 | 更新 changelog | `changelog/` 目录添加详细变更记录，包含需求背景、实现方案、相关代码实现 |
+| 6 | 部署 dist 产物 | 运行 `npm run build` 并提交 dist 目录 |
 
 **在线地址：** https://xuefeng0324.github.io/fund/
 
