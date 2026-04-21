@@ -134,7 +134,7 @@ function resetTimer() {
 
 // 组合式函数
 const { fundCodes, fundGroups, fundInfoMap, loadConfig } = useConfig()
-const { funds, fundNameMap, loadFunds } = useFunds()
+const { funds, fundNameMap, loadFunds, checkIsUpdated } = useFunds()
 const { indexData, loadIndex } = useIndex()
 const { adviceData, loadAdvice } = useAdvice()
 const { validateKey: authValidateKey } = useAuth()
@@ -189,7 +189,7 @@ async function loadData() {
     }
     // 先加载基金数据和指数数据
     await Promise.all([
-      loadFunds(codes),
+      loadFunds(codes, fundInfoMap.value),
       loadIndex()
     ])
     // 基金数据加载完成，立即更新时间

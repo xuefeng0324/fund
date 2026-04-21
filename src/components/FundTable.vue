@@ -43,10 +43,13 @@
     >
       <el-table-column prop="FCODE" label="代码" width="90" sortable />
       <el-table-column prop="SHORTNAME" label="名称" min-width="120" sortable #default="{ row }">
-        {{ getFundName(row) }}
+        <span class="fund-name-cell">
+          {{ getFundName(row) }}
+          <span v-if="row.isUpdated" class="updated-badge">已更新</span>
+        </span>
       </el-table-column>
       <el-table-column prop="GSZ" label="估算净值" width="110" sortable #default="{ row }">
-        <span :class="getChangeClass(row)">{{ row.GSZ ?? '-' }}</span>
+        <span :class="getChangeClass(row)">{{ getDisplayNav(row) }}</span>
       </el-table-column>
       <el-table-column prop="GSZZL" label="估算涨跌" width="110" sortable #default="{ row }">
         <span :class="getChangeClass(row)" class="chg">{{ formatChange(row) }}</span>
@@ -98,7 +101,10 @@
         <!-- 标题行（始终显示，位置固定） -->
         <div class="card-title-row">
           <div class="fund-title-info">
-            <span class="fund-name">{{ getFundName(fund) }}</span>
+            <span class="fund-name">
+              {{ getFundName(fund) }}
+              <span v-if="fund.isUpdated" class="updated-badge">已更新</span>
+            </span>
             <span class="fund-code">{{ fund.FCODE }}</span>
           </div>
           <div class="fund-change-wrap">
@@ -114,7 +120,7 @@
           <div class="card-body">
             <div class="card-item">
               <span class="label">估算净值</span>
-              <span class="value" :class="getChangeClass(fund)">{{ fund.GSZ ?? '-' }}</span>
+              <span class="value" :class="getChangeClass(fund)">{{ getDisplayNav(fund) }}</span>
             </div>
             <div class="card-item">
               <span class="label">J(日)</span>
@@ -161,7 +167,10 @@
         <template v-if="!isMobile">
           <div class="card-header">
             <div class="fund-info">
-              <span class="fund-name">{{ getFundName(fund) }}</span>
+              <span class="fund-name">
+                {{ getFundName(fund) }}
+                <span v-if="fund.isUpdated" class="updated-badge">已更新</span>
+              </span>
               <span class="fund-code">{{ fund.FCODE }}</span>
             </div>
             <div class="fund-change" :class="getChangeClass(fund)">
@@ -171,7 +180,7 @@
           <div class="card-body">
             <div class="card-item">
               <span class="label">估算净值</span>
-              <span class="value" :class="getChangeClass(fund)">{{ fund.GSZ ?? '-' }}</span>
+              <span class="value" :class="getChangeClass(fund)">{{ getDisplayNav(fund) }}</span>
             </div>
             <div class="card-item">
               <span class="label">J(日)</span>
@@ -308,6 +317,10 @@ function sortBy(column) {
 }
 
 function getChangeValue(fund) {
+  // 如果已更新，使用历史数据
+  if (fund.isUpdated && fund.historyChange != null) {
+    return parseFloat(fund.historyChange)
+  }
   if (fund.GSZ != null && fund.GSZZL != null) {
     return parseFloat(fund.GSZZL)
   }
@@ -315,6 +328,15 @@ function getChangeValue(fund) {
     return parseFloat(fund.LAST_CHG)
   }
   return null
+}
+
+// 获取显示用的净值
+function getDisplayNav(fund) {
+  // 如果已更新，使用历史净值
+  if (fund.isUpdated && fund.historyNav != null) {
+    return fund.historyNav
+  }
+  return fund.GSZ ?? '-'
 }
 
 function getChangeClass(fund) {
@@ -540,6 +562,25 @@ const sortedFunds = computed(() => {
 
 .negative {
   color: #16a34a;
+}
+
+.fund-name-cell {
+  display: inline;
+}
+
+.updated-badge {
+  display: inline;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #0052ff;
+  background: transparent;
+  border: 1px solid #0052ff;
+  border-radius: 100000px;
+  white-space: nowrap;
+  vertical-align: baseline;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
 }
 
 .chg {
