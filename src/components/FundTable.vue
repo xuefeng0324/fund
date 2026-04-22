@@ -85,8 +85,8 @@
           <template v-else>{{ getReason(row) }}</template>
         </span>
       </el-table-column>
-      <el-table-column label="更新时间" width="110" sortable #default="{ row }">
-        <span class="time">{{ getDisplayTime(row) }}</span>
+      <el-table-column label="更新时间" width="140" sortable #default="{ row }">
+        <span class="time update-time">{{ getDisplayTime(row) }}</span>
       </el-table-column>
     </el-table>
 
@@ -563,6 +563,10 @@ const sortedFunds = computed(() => {
   font-weight: 600;
 }
 
+.fund-table :deep(.el-table__body-wrapper) {
+  overflow-x: visible;
+}
+
 .fund-table :deep(td) {
   font-weight: 600;
 }
@@ -893,6 +897,17 @@ const sortedFunds = computed(() => {
   color: #5b616e;
   white-space: nowrap;
   margin-left: 8px;
+}
+
+.update-time {
+  display: inline-block;
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: 0 !important;
 }
 
 .loading-text {
