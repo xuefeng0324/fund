@@ -85,7 +85,9 @@
           <template v-else>{{ getReason(row) }}</template>
         </span>
       </el-table-column>
-      <el-table-column prop="GZTIME" label="更新时间" width="110" sortable />
+      <el-table-column label="更新时间" width="110" sortable #default="{ row }">
+        <span class="time">{{ getDisplayTime(row) }}</span>
+      </el-table-column>
     </el-table>
 
     <!-- 移动端卡片 -->
@@ -111,7 +113,7 @@
             <span class="fund-change" :class="getChangeClass(fund)">
               {{ formatChange(fund) }}
             </span>
-            <span class="time card-collapsed-time">{{ fund.GZTIME || fund.PDATE }}</span>
+            <span class="time card-collapsed-time">{{ getDisplayTime(fund) }}</span>
           </div>
         </div>
 
@@ -159,7 +161,7 @@
               </template>
               <template v-else>{{ getReason(fund) }}</template>
             </span>
-            <span class="time">{{ fund.GZTIME || fund.PDATE }}</span>
+            <span class="time">{{ getDisplayTime(fund) }}</span>
           </div>
         </div>
 
@@ -209,7 +211,7 @@
           </div>
           <div class="card-footer">
             <span class="reason">{{ getReason(fund) }}</span>
-            <span class="time">{{ fund.GZTIME }}</span>
+            <span class="time">{{ getDisplayTime(fund) }}</span>
           </div>
         </template>
       </el-card>
@@ -337,6 +339,15 @@ function getDisplayNav(fund) {
     return fund.historyNav
   }
   return fund.GSZ ?? '-'
+}
+
+// 获取显示用的时间
+function getDisplayTime(fund) {
+  // 如果已更新，使用历史净值日期
+  if (fund.isUpdated && fund.historyDate) {
+    return fund.historyDate
+  }
+  return fund.GZTIME || fund.PDATE || ''
 }
 
 function getChangeClass(fund) {
