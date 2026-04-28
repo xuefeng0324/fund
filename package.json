@@ -1,7 +1,7 @@
 {
   "name": "fund-monitor",
   "private": true,
-  "version": "2.1.0",
+  "version": "2.6.3",
   "type": "module",
   "scripts": {
     "dev": "vite",

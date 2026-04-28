@@ -213,14 +213,14 @@ npm run preview
 
 ### GitHub Pages 自动部署
 
-推送到 **`main`**、**`lyl-dev-claude`** 或 **`pxf-dev-cursor`** 均可触发 GitHub Actions 部署（以 `.github/workflows/pages-deploy.yml` 的 `push.branches` 为准）。
+推送到 **`main`** 分支触发 GitHub Actions 部署（以 `.github/workflows/pages-deploy.yml` 的 `push.branches` 为准）。
 
 ```bash
-# 构建并提交（示例：PXF 默认在 pxf-dev-cursor 上开发）
+# 构建并提交
 npm run build
 git add .
-git commit -m "docs(fund): 符合规范的说明性提交示例"
-git push origin pxf-dev-cursor
+git commit -m "feat: 新增净值已更新功能"
+git push origin main
 ```
 
 **提交规范**：
@@ -231,7 +231,7 @@ git push origin pxf-dev-cursor
 |------|------|------|
 | 1 | 代码审查 | 检查代码质量，确保逻辑正确。先检查是否存在相关 code review skill 进行辅助审查 |
 | 2 | 补充注释 | 为新增/修改的代码添加必要注释 |
-| 3 | 更新版本信息 | README 顶部版本表添加新版本（只能新增，不能修改旧版本信息） |
+| 3 | 更新版本信息 | README 顶部版本表添加新版本 + package.json version 同步更新（只能新增，不能修改旧版本信息） |
 | 4 | 简要更新日志 | README 底部更新日志添加简要说明 |
 | 5 | 更新 changelog | `changelog/` 目录添加详细变更记录，包含需求背景、实现方案、相关代码实现 |
 | 6 | 部署 dist 产物 | 运行 `npm run build` 并提交 dist 目录 |
