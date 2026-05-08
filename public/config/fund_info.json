@@ -205,7 +205,12 @@
     "sale_confirm_date": 1
   },
   {
-    "fund_code": "010737",
+    "fund_code": "013180",
+    "buy_confirm_date": 1,
+    "sale_confirm_date": 1
+  },
+  {
+    "fund_code": "013811",
     "buy_confirm_date": 1,
     "sale_confirm_date": 1
   }
