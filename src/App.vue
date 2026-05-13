@@ -71,7 +71,7 @@ const toolbarEl = ref(null)
 
 // 自动刷新定时器
 let refreshTimer = null
-const REFRESH_INTERVAL = 2 * 60 * 1000 // 2分钟
+const REFRESH_INTERVAL = 3 * 60 * 1000 // 3分钟
 
 // 缓动函数：ease-out cubic
 function easeOutCubic(t) {
