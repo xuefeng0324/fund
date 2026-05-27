@@ -6,6 +6,7 @@
 
 | 版本 | 发布日期 | 说明 |
 |------|----------|------|
+| v2.6.5 | 2026-05-27 | 修复 GitHub Actions workflow 触发 Pages 部署的权限问题 |
 | v2.6.4 | 2026-05-13 | 优化自动刷新间隔从2分钟调整为3分钟，降低请求频率 |
 | v2.6.3 | 2026-04-21 | feat: 新增净值已更新功能，根据 T+N 规则判断并在基金名称后显示徽标 |
 | v2.6.2 | 2026-04-20 | 代码审查：修复多处 JS bug，删除无用函数，提升稳定性 |
@@ -267,6 +268,14 @@ npm run build
 ## 更新日志
 
 详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期-版本-变更信息记录。
+
+### v2.6.5 (2026-05-27)
+
+**Bug 修复 — GitHub Actions workflow 触发 Pages 部署权限问题**
+
+- 移除 `fund-info-sync.yml` 中通过 curl dispatch 触发 Pages 部署的方式（`GITHUB_TOKEN` 无法跨 workflow 触发，返回 403）
+- `pages-deploy.yml` 新增 `workflow_run` 触发器，监听 `Fund Info Sync` 完成后自动触发部署
+- 添加条件判断，仅在 sync workflow 成功时才执行构建部署
 
 ### v2.6.4 (2026-05-13)
 
