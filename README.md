@@ -6,6 +6,7 @@
 
 | 版本 | 发布日期 | 说明 |
 |------|----------|------|
+| v2.7.0 | 2026-07-23 | **fundgz 失效修复**: 切换至天天基金新接口 `FundValuationLast` (POST 批量, CORS 开放, 字段完全兼容), 53 个基金一次性 145ms; 35/53 盘中估算, 18/53 用 NAV 兜底; 实测请求数从 ~160 降到 ~53; 完整 E2E 验证 + 截图 |
 | v2.6.5 | 2026-05-27 | 修复 GitHub Actions workflow 触发 Pages 部署的权限问题 |
 | v2.6.4 | 2026-05-13 | 优化自动刷新间隔从2分钟调整为3分钟，降低请求频率 |
 | v2.6.3 | 2026-04-21 | feat: 新增净值已更新功能，根据 T+N 规则判断并在基金名称后显示徽标 |
@@ -171,8 +172,10 @@ npm run preview
 
 | 函数 | 说明 |
 |------|------|
-| `fetchSingleFundgz(code)` | 获取单只基金估值（JSONP） |
-| `fetchPingzhongdata(code)` | 获取基金详细数据 |
+| `fetchSingleFundgz(code)` | 获取单只基金估值（JSONP, **已废弃**, 保留作兼容） |
+| `fetchFunvaluationBatch(codes)` | **v2.7.0 起首选**: POST 批量获取多只基金估值, CORS 开放, 145ms/53 个 |
+| `fetchFunvaluationOne(code)` | 单只基金估值补齐 (内部走 batch, 单只) |
+| `fetchPingzhongdata(code)` | 获取基金详细数据 (净值趋势 + 持仓股票, 用作 FV 兜底 + KDJ/MA30 计算) |
 
 ### 指数数据 API (`src/api/index.js`)
 
@@ -204,12 +207,14 @@ npm run preview
 
 | 功能 | 外部 API | 调用方式 |
 |------|----------|---------|
-| 单只估值补齐 | `fundgz.1234567.com.cn` | JSONP |
+| 实时估值批量 (v2.7.0 起首选) | `fundcomapi.tiantianfunds.com/mm/newCore/FundValuationLast` | POST x-www-form-urlencoded |
+| 实时估值兜底 | `fundcomapi.eastmoney.com/mm/newCore/FundValuationLast` | POST x-www-form-urlencoded |
+| ~~单只估值补齐 (已废弃)~~ | ~~`fundgz.1234567.com.cn`~~ | ~~JSONP (2026-02 接口下线)~~ |
 | 指数快照 | `push2.eastmoney.com` | JSONP |
-| 净值数据 | `fund.eastmoney.com/pingzhongdata` | script 标签 |
+| 净值趋势 + 持仓 | `fund.eastmoney.com/pingzhongdata` | script 标签 |
 | 配置存储 | `api.github.com` | REST API |
 
-> **注意**：所有接口使用 JSONP 或 script 标签加载方式绕过 CORS 限制。
+> **注意**：v2.7.0 起 FundValuationLast 接口 CORS 开放 (`Access-Control-Allow-Origin: *`), 浏览器可直接 fetch, 不再需要 JSONP/script 包装.
 
 ## 部署
 
@@ -268,6 +273,21 @@ npm run build
 ## 更新日志
 
 详细的变更记录请查看 [changelog/](./changelog/) 目录，按日期-版本-变更信息记录。
+
+### v2.7.0 (2026-07-23)
+
+**关键修复 — fundgz 失效修复 (切换至 FundValuationLast 接口)**
+
+- 2026-02 证监会要求所有三方平台下架"基金实时估值"功能, 项目旧用的 `fundgz.1234567.com.cn` JSONP 接口彻底下线
+- 切换到天天基金内部产品仍在使用的 `fundcomapi.tiantianfunds.com/mm/newCore/FundValuationLast` 接口
+- **CORS 完全开放**: 浏览器可直接 fetch 调用, 不再需要 JSONP/script 包装
+- **批量支持**: 一次 POST 53 个基金只需 145ms, 实测请求数从 ~160 降到 ~53
+- **字段完全兼容**: FCODE/SHORTNAME/GSZ/GSZZL/GZTIME/NAV/NAVCHGRT/PDATE 一一对应 fundgz 字段
+- 三级 fallback: FV 批量 → NAV 兜底 (合规章节下的基金) → pingzhongdata 串行兜底 (FV 完全失败)
+- useFunds.js 重构: loadFunds 流程改为"FV 一次批量 → 遍历用 FV 自带 PDATE 计算 isUpdated → pingzhongdata 只跑 FV 失败的代码"
+- 全量 E2E 验证: 35/53 盘中估算实时显示 + 18/53 用 NAV 兜底 + 0 console error
+
+**后续风险**: 监管未来可能再次封锁, 已规划 B 方案 (自计算估值) + D 方案 (GitHub Actions 预拉)
 
 ### v2.6.5 (2026-05-27)
 

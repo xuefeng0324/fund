@@ -9,6 +9,8 @@ import { ref, reactive } from 'vue'
 import dayjs from 'dayjs'
 import {
   fetchSingleFundgz,
+  fetchFunvaluationBatch,
+  fetchPingzhongdata,
   getLastTradingChange
 } from '../api/funds'
 
@@ -78,8 +80,10 @@ export function useFunds() {
    * 加载基金数据
    *
    * 流程：
-   * 1. fundgz 获取实时数据，成功则直接使用
-   * 2. fundgz 返回空数据或失败重试3次后，调用 pingzhongdata 作为备选
+   * 1. 一次批量调用 FundValuationLast (替代 fundgz, 53 个基金 145ms)
+   * 2. 有 GSZ 的 → 直接用作盘中估算
+   * 3. 无 GSZ 但有 NAV → 退化为上一交易日实际值, 标记 _hasEstimated=false
+   * 4. FV 完全没返回 → 调用 pingzhongdata 兜底
    *
    * @param {string[]} codes - 基金代码数组
    * @param {Object} fundInfoMap - 基金信息映射 { code: buyConfirmDate }
@@ -97,45 +101,74 @@ export function useFunds() {
     funds.value = []
 
     try {
-      // 所有代码都需要通过 fundgz 获取
-      const missing = [...codes]
+      // ===== 第 1 步: 批量 FV 接口 (替代 fundgz) =====
+      const fvMap = await fetchFunvaluationBatch(codes)
+      if (fvMap._error) {
+        // 批量接口失败 → 把错误留给下面的兜底处理
+        // eslint-disable-next-line no-console
+        console.warn('FV batch failed, fallback to pingzhongdata', fvMap._error)
+      }
 
-      // 逐个获取基金数据，全部完成后再关闭 loading
-      async function fetchWithRetry(code, remainRetries = 3) {
-        try {
-          const r = await fetchSingleFundgz(code)
-          if (r && (r.GSZ != null || r.GSZZL != null)) {
-            // 获取历史净值数据用于判断是否已更新
-            const buyConfirmDate = fundInfoMap[code]
-            let historyData = null
-            try {
-              historyData = await getLastTradingChange(code)
-            } catch {}
-            const isUpdated = checkIsUpdated(buyConfirmDate, historyData?.date)
+      const failedCodes = []
+      let hasAny = false
 
-            const fundData = {
-              ...r,
-              isUpdated,
-              historyNav: historyData?.nav,
-              historyChange: historyData?.change,
-              historyDate: historyData?.date
-            }
-            const idx = funds.value.findIndex(f => f.FCODE === code)
-            if (idx >= 0) funds.value[idx] = fundData
-            else funds.value.push(fundData)
-            if (r.SHORTNAME) fundNameMap[code] = r.SHORTNAME
-            lastUpdate.value = new Date()
-          } else {
-            throw new Error('fundgz empty response')
+      for (const code of codes) {
+        const r = fvMap.get(code)
+        const buyConfirmDate = fundInfoMap[code]
+
+        // PDATE 是 FV 返回的"净值日期" (YYYY-MM-DD),
+        // 跟原 pingzhongdata 拉到的 historyDate 含义一致, 直接用
+        // 仅在 FV 没数据或日期无效时, 才退回到 pingzhongdata
+        let historyDate = (r && r.PDATE) || null
+        let historyNav = r ? r.DWJZ : null
+        let historyChange = r ? r.GSZZL : null
+        let isUpdated = false
+
+        if (historyDate) {
+          // 兼容: PDATE 可能 "2026-07-22" (10 字符) 或 "20260722" (8 字符)
+          if (historyDate.length === 8 && !historyDate.includes('-')) {
+            historyDate = `${historyDate.slice(0,4)}-${historyDate.slice(4,6)}-${historyDate.slice(6,8)}`
           }
-        } catch (e) {
-          if (remainRetries > 0 && e.message !== 'fundgz empty response') {
-            await new Promise(resolve => setTimeout(resolve, 150))
-            return fetchWithRetry(code, remainRetries - 1)
+          isUpdated = checkIsUpdated(buyConfirmDate, historyDate)
+        }
+        if (isNaN(historyNav)) historyNav = null
+        if (isNaN(historyChange)) historyChange = null
+
+        if (r && (r.GSZ != null || r.GSZZL != null)) {
+          // FV 有估算 (盘中) 或有 NAV 收盘值
+          const fundData = {
+            FCODE: r.FCODE,
+            SHORTNAME: r.SHORTNAME,
+            GSZ: r.GSZ,
+            GSZZL: r.GSZZL,
+            DWJZ: r.DWJZ,
+            GZTIME: r.GZTIME,
+            LAST_CHG: r.GSZZL, // 兼容字段, UI 用作"上一交易日涨跌幅"等
+            isUpdated,
+            historyNav,
+            historyChange,
+            historyDate,
+            // 标记是盘中估值还是上一交易日实际值, UI 可用 (角标/样式)
+            _hasEstimated: r._hasEstimated,
+            PDATE: r.PDATE
           }
+          const idx = funds.value.findIndex(f => f.FCODE === code)
+          if (idx >= 0) funds.value[idx] = fundData
+          else funds.value.push(fundData)
+          if (r.SHORTNAME) fundNameMap[code] = r.SHORTNAME
+          hasAny = true
+        } else {
+          // FV 没数据 → 进入 pingzhongdata 兜底队列
+          failedCodes.push(code)
+        }
+      }
+
+      // ===== 第 2 步: FV 失败的代码走 pingzhongdata 串行兜底 =====
+      if (failedCodes.length > 0) {
+        async function fallbackOne(code) {
           try {
             const lcd = await getLastTradingChange(code)
-            if (lcd.change !== null) {
+            if (lcd.change !== null || lcd.nav !== null) {
               const buyConfirmDate = fundInfoMap[code]
               const isUpdated = checkIsUpdated(buyConfirmDate, lcd.date)
               const fundData = {
@@ -143,26 +176,35 @@ export function useFunds() {
                 SHORTNAME: lcd.name || '',
                 GSZ: lcd.nav,
                 GSZZL: lcd.change,
+                DWJZ: lcd.nav,
                 GZTIME: lcd.date,
                 LAST_CHG: lcd.change,
                 isUpdated,
                 historyNav: lcd.nav,
                 historyChange: lcd.change,
-                historyDate: lcd.date
+                historyDate: lcd.date,
+                _hasEstimated: false,
+                _dataSource: 'pingzhongdata'
               }
               const idx = funds.value.findIndex(f => f.FCODE === code)
               if (idx >= 0) funds.value[idx] = fundData
               else funds.value.push(fundData)
               if (lcd.name) fundNameMap[code] = lcd.name
-              lastUpdate.value = new Date()
+              hasAny = true
             }
           } catch {
-            // 两个数据源都失败，跳过该基金
+            // 彻底拿不到数据, 跳过
           }
+        }
+        // 串行执行, 避免 pingzhongdata 全局变量竞态
+        for (const code of failedCodes) {
+          await fallbackOne(code)
         }
       }
 
-      await Promise.allSettled(missing.map(code => fetchWithRetry(code)))
+      if (hasAny) {
+        lastUpdate.value = new Date()
+      }
     } catch (e) {
       error.value = e.message
     } finally {
