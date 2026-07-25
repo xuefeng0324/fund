@@ -205,22 +205,12 @@
     "sale_confirm_date": 1
   },
   {
-    "fund_code": "013180",
-    "buy_confirm_date": 1,
-    "sale_confirm_date": 1
-  },
-  {
     "fund_code": "013811",
     "buy_confirm_date": 1,
     "sale_confirm_date": 1
   },
   {
     "fund_code": "008888",
-    "buy_confirm_date": 1,
-    "sale_confirm_date": 1
-  },
-  {
-    "fund_code": "026602",
     "buy_confirm_date": 1,
     "sale_confirm_date": 1
   },
@@ -235,11 +225,6 @@
     "sale_confirm_date": 1
   },
   {
-    "fund_code": "011966",
-    "buy_confirm_date": 1,
-    "sale_confirm_date": 1
-  },
-  {
     "fund_code": "270042",
     "buy_confirm_date": 2,
     "sale_confirm_date": 2
@@ -250,17 +235,67 @@
     "sale_confirm_date": 1
   },
   {
-    "fund_code": "016874",
-    "buy_confirm_date": 1,
-    "sale_confirm_date": 1
-  },
-  {
     "fund_code": "017811",
     "buy_confirm_date": 1,
     "sale_confirm_date": 1
   },
   {
     "fund_code": "018927",
+    "buy_confirm_date": 1,
+    "sale_confirm_date": 1
+  },
+  {
+    "fund_code": "025201",
+    "buy_confirm_date": 1,
+    "sale_confirm_date": 1
+  },
+  {
+    "fund_code": "022486",
+    "buy_confirm_date": 1,
+    "sale_confirm_date": 1
+  },
+  {
+    "fund_code": "000979",
+    "buy_confirm_date": 1,
+    "sale_confirm_date": 1
+  },
+  {
+    "fund_code": "006594",
+    "buy_confirm_date": 1,
+    "sale_confirm_date": 1
+  },
+  {
+    "fund_code": "024239",
+    "buy_confirm_date": 2,
+    "sale_confirm_date": 2
+  },
+  {
+    "fund_code": "008163",
+    "buy_confirm_date": 1,
+    "sale_confirm_date": 1
+  },
+  {
+    "fund_code": "110003",
+    "buy_confirm_date": 1,
+    "sale_confirm_date": 1
+  },
+  {
+    "fund_code": "162412",
+    "buy_confirm_date": 1,
+    "sale_confirm_date": 1
+  },
+  {
+    "fund_code": "519671",
+    "buy_confirm_date": 1,
+    "sale_confirm_date": 1
+  },
+  {
+    "fund_code": "001594",
+    "buy_confirm_date": 1,
+    "sale_confirm_date": 1
+  },
+  {
+    "fund_code": "000083",
     "buy_confirm_date": 1,
     "sale_confirm_date": 1
   }
