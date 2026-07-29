@@ -328,5 +328,10 @@
     "fund_code": "009982",
     "buy_confirm_date": 1,
     "sale_confirm_date": 1
+  },
+  {
+    "fund_code": "013402",
+    "buy_confirm_date": 1,
+    "sale_confirm_date": 1
   }
 ]
