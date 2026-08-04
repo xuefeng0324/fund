@@ -235,11 +235,6 @@
     "sale_confirm_date": 1
   },
   {
-    "fund_code": "024239",
-    "buy_confirm_date": 2,
-    "sale_confirm_date": 2
-  },
-  {
     "fund_code": "110003",
     "buy_confirm_date": 1,
     "sale_confirm_date": 1
@@ -265,11 +260,6 @@
     "sale_confirm_date": 1
   },
   {
-    "fund_code": "002910",
-    "buy_confirm_date": 1,
-    "sale_confirm_date": 1
-  },
-  {
     "fund_code": "001235",
     "buy_confirm_date": 1,
     "sale_confirm_date": 1
@@ -280,7 +270,12 @@
     "sale_confirm_date": 1
   },
   {
-    "fund_code": "013402",
+    "fund_code": "008164",
+    "buy_confirm_date": 1,
+    "sale_confirm_date": 1
+  },
+  {
+    "fund_code": "000979",
     "buy_confirm_date": 1,
     "sale_confirm_date": 1
   }
